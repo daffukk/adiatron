@@ -8,5 +8,5 @@ cd build
 cmake ..
 make 
 
-mv -f encrypt decrypt ..
+mv -f adiatron ..
 echo "Done."

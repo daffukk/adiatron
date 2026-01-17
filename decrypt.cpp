@@ -16,11 +16,10 @@ int decrypt(int argc, char* argv[]) {
    if(!fs::is_directory("keys")) {
     std::cout << "Generating keys...\n";
     generateKeypair();
-    std::cout << "Keys successfuly generated\n";
   }
 
 
-  if(argc < 2) {
+  if(argc < 3) {
     return 1;
   }
 
@@ -42,14 +41,14 @@ int decrypt(int argc, char* argv[]) {
   secFile.read(reinterpret_cast<char*>(secretKey), crypto_box_SECRETKEYBYTES);
 
 
-  std::size_t fileSize = fs::file_size(argv[1]);
+  std::size_t fileSize = fs::file_size(argv[2]);
   std::size_t encryptedFileSize = fileSize - crypto_box_NONCEBYTES;
   std::size_t decryptedContentFileSize = encryptedFileSize - crypto_box_MACBYTES;
 
   unsigned char nonce[crypto_box_NONCEBYTES];
   std::vector<unsigned char> encryptedContent(encryptedFileSize);
 
-  std::ifstream cipherFile(argv[1], std::ios::binary);
+  std::ifstream cipherFile(argv[2], std::ios::binary);
   cipherFile.read(reinterpret_cast<char*>(nonce), sizeof nonce);
   cipherFile.read(reinterpret_cast<char*>(encryptedContent.data()), encryptedFileSize);
 
@@ -61,7 +60,7 @@ int decrypt(int argc, char* argv[]) {
     std::cerr << "Failed to decrypt\n";
   }
 
-  std::string outputName = std::string(argv[1]) + ".out";
+  std::string outputName = std::string(argv[2]) + ".out";
 
   std::ofstream out(outputName.c_str(), std::ios::binary);
   out.write(reinterpret_cast<char*>(decryptedContent.data()), decryptedContentFileSize);

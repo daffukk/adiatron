@@ -22,7 +22,7 @@ int encrypt(int argc, char* argv[]) {
     return -1;
   }
 
-  std::ifstream file(argv[1],  std::ios::binary);
+  std::ifstream file(argv[2],  std::ios::binary);
   std::vector<unsigned char> fileContent(std::istreambuf_iterator<char>(file),{});
   const std::size_t fileContent_len = crypto_box_MACBYTES + fileContent.size();
 
