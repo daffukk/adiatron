@@ -4,6 +4,18 @@
 #include <iostream>
 #include <string>
 
+
+constexpr size_t CHUNK_SIZE = 64 * 1024;
+
+
+
+struct Flags {
+  std::string pubPath;
+  std::string secPath;
+  int repeatAmount;
+};
+
+
 void generateKeypair();
 int encrypt(int argc, char* argv[]);
 int decrypt(int argc, char* argv[]);
