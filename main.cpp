@@ -50,7 +50,8 @@ inline void printHelp(int argc, char* argv[]) {
     << "\n"
     << "Examples:\n"
     << "\t" << argv[0] << " ecnrypt file.txt\n"
-    << "\t" << argv[0] << " decrypt file.enc\n";
+    << "\t" << argv[0] << " decrypt file.enc\n"
+    << "\t" << argv[0] << " keygen\n";
 }
 
 
@@ -63,6 +64,8 @@ int main(int argc, char* argv[]) {
     printHelp(argc, argv);
     return -1;
   }
+
+  if(argc == 2 && strcmp(argv[1], "keygen") == 0) generateKeypair();
 
 
   if(argc >= 3) {
