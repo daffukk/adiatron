@@ -61,6 +61,11 @@ To decrypt files:
 > ./adiatron keygen
 > ```
 
+> [!TIP]
+> You can create a short alias by adding this line to your shell configuration file(e.g., `~/.bashrc` or `~/.zshrc`):
+> ```bash
+> alias adiatron=/path/to/adiatron
+> ```
 
 
 ## License
