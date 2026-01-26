@@ -3,6 +3,12 @@ Adiatron is a command-line tool for encrypting and decrypting files of any size.
 It uses public-key cryptography for secure key exchange and authenticated streaming
 encryption to process large files with constant memory usage.
 
+## TODO
+- [ ] Add -o argument for customizing output filename
+- [ ] Add keys passphrase support
+- [ ] Add --keydir, --pubkey and --seckey arguments for customizing keys directory
+- [ ] Add --version flag
+
 ## How it works
 
 1. A random symmetric stream key is generated
