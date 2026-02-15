@@ -3,86 +3,58 @@
 
 // General flags
 
+Config parseArgs(int argc, char** argv) {
+  Config cfg;
 
-inline bool flagFinder(int argc, char* argv[], const char* flag) {
-  for (int i = 1; i < argc; i++) {
-    if (strcmp(argv[i], flag) == 0) {
-      return true;
+  if(argc < 2) exit(1);
+
+  cfg.mode = argv[1];
+
+  if(cfg.mode == "keygen") return cfg;
+  if(argc < 3) {
+    std::cerr << "File is not selected.\n";
+    exit(1);
+  }
+
+  cfg.file = argv[2];
+
+  int i=3;
+
+  for(; i < argc; i++) {
+    std::string arg = argv[i];
+    
+    if(arg == "--dir" || arg == "-d") {
+      cfg.isDir = true;
+    }
+    else {
+      std::cout << "Unknown argument: " << arg << "\n";
+      exit(1);
     }
   }
-  return false;
+
+  return cfg;
 }
-
-
-inline double findFlagValue(int argc, char* argv[], const char* flag) {
-  for (int i = 1; i < argc; i++) {
-    std::string arg = argv[i];
-      if(arg.find(flag) == 0) {
-        double flagValue = std::stof(arg.substr(strlen(flag)));
-
-        if(flagValue < 0) {
-          std::cout << "Invalid argument value: " << arg << std::endl;
-          return -1;
-        }
-
-        return flagValue;
-      }
-  }
-  return -1;
-}
-
-
-inline std::string findFlagValueStr(int argc, char* argv[], const char* flag) {
-  for(int i=1; i < argc; i++) {
-    std::string arg = argv[i];
-    if(arg.find(flag) == 0) {
-      std::string flagValue = arg.substr(strlen(flag));
-      return flagValue;
-    }
-  }
-  return "";
-}
-
-
-inline void printHelp(int argc, char* argv[]) {
-  std::cout
-    << "Usage: " << argv[0] << " <ENCRYPT/DECRYPT> <OPTIONS>\n"
-    << "\n"
-    << "Examples:\n"
-    << "\t" << argv[0] << " ecnrypt file.txt\n"
-    << "\t" << argv[0] << " decrypt file.enc\n"
-    << "\t" << argv[0] << " keygen\n";
-}
-
-
-
 
 
 int main(int argc, char* argv[]) {
 
-  if(argc < 3 || flagFinder(argc, argv, "--help") || flagFinder(argc, argv, "-h")) {
+  if(argc < 2) {
     printHelp(argc, argv);
-    return -1;
+    return 1;
   }
 
-  if(argc == 2 && strcmp(argv[1], "keygen") == 0) generateKeypair();
+  Config cfg = parseArgs(argc, argv);
 
+  if(cfg.mode == "keygen") generateKeypair();
 
-  if(argc >= 3) {
-    if(strcmp(argv[1], "encrypt") == 0) {
-      encrypt(argc, argv);
-    }
-    else if(strcmp(argv[1], "decrypt") == 0) {
-      decrypt(argc, argv);
-    }
-    else {
-      std::cout << "Wrong argument.\n";
-      return 1;
-    }
+  if(argc < 3 && cfg.mode != "keygen") {
+    printHelp(argc, argv);
+    return 1;
   }
 
 
-
+  if(cfg.mode == "encrypt") encrypt(cfg);
+  else if(cfg.mode == "decrypt") decrypt(cfg);
 
   return 0;
 }

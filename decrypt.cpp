@@ -6,13 +6,12 @@
 #include <sodium/core.h>
 #include <sodium/crypto_box.h>
 #include <sodium/crypto_secretstream_xchacha20poly1305.h>
-#include <vector>
 #include "headers.h"
 
 
 
 
-int decrypt(int argc, char* argv[]) {
+int decrypt(Config cfg) {
 namespace fs = std::filesystem;
 
    if(!fs::is_directory("keys")) {
@@ -20,16 +19,13 @@ namespace fs = std::filesystem;
     generateKeypair();
   }
 
-  if(argc < 3) {
-    return 1;
-  }
 
   if(sodium_init() != 0) {
     std::cerr << "Error sodium\n";
   }
 
 
-  std::ifstream file(argv[2],  std::ios::binary);
+  std::ifstream file(cfg.file, std::ios::binary);
   if(!file) {
     std::cerr << "Cannot open input file\n";
     return -1;

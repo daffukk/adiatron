@@ -4,6 +4,8 @@ It uses public-key cryptography for secure key exchange and authenticated stream
 encryption to process large files with constant memory usage.
 
 ## TODO
+- [ ] Custom filename
+- [ ] Keys selection
 - [ ] Auto archiving if directory is given
 - [ ] Select usb drive for keys
 - [ ] -o argument for customizing output filename

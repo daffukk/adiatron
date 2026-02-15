@@ -5,13 +5,12 @@
 #include <sodium/core.h>
 #include <sodium/crypto_box.h>
 #include <sodium/crypto_secretstream_xchacha20poly1305.h>
-#include <vector>
 #include "headers.h"
 
 
 
 
-int encrypt(int argc, char* argv[]) {
+int encrypt(Config cfg) {
 namespace fs = std::filesystem;
  
   if(!fs::is_directory("keys")) {
@@ -19,9 +18,6 @@ namespace fs = std::filesystem;
     generateKeypair();
   }
 
-  if(argc < 3) {
-    return -1;
-  }
 
   if(sodium_init() != 0) {
     std::cerr << "Error sodium\n";
@@ -29,7 +25,7 @@ namespace fs = std::filesystem;
   }
 
 
-  std::ifstream file(argv[2],  std::ios::binary);
+  std::ifstream file(cfg.file,  std::ios::binary);
   if(!file) {
     std::cerr << "Cannot open input file\n";
     return -1;
@@ -59,7 +55,10 @@ namespace fs = std::filesystem;
   randombytes_buf(boxNonce, sizeof boxNonce);
 
   unsigned char boxedKey[crypto_box_MACBYTES + crypto_secretstream_xchacha20poly1305_KEYBYTES];
-  crypto_box_easy(boxedKey, streamKey, sizeof streamKey, boxNonce, publicKey, secretKey);
+  if(crypto_box_easy(boxedKey, streamKey, sizeof streamKey, boxNonce, publicKey, secretKey) != 0) {
+    std::cerr << "Failed to encrypt.\n";
+    return 1;
+  }
 
 
   crypto_secretstream_xchacha20poly1305_state state;
