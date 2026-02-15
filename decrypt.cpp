@@ -64,7 +64,15 @@ namespace fs = std::filesystem;
 
   crypto_secretstream_xchacha20poly1305_state state;
   crypto_secretstream_xchacha20poly1305_init_pull(&state, header, streamKey);
-  std::ofstream out("output.out", std::ios::binary);
+
+  std::string filename;
+  if(cfg.filename != "" && cfg.filename.size() > 0) {
+    filename = cfg.filename;
+  } else {
+    filename = cfg.file + ".out";
+  }
+  
+  std::ofstream out(filename.c_str(), std::ios::binary);
 
 
   // Decrypting file by chunks

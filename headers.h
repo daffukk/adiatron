@@ -12,6 +12,7 @@ struct Config {
   std::string mode;
   std::string file;
   bool isDir = false;
+  std::string filename = "";
 };
 
 

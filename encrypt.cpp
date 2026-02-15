@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <string>
 #include <fstream>
 #include <iostream>
 #include <sodium.h>
@@ -69,7 +70,14 @@ namespace fs = std::filesystem;
 
   // Writing official data into file 
 
-  std::ofstream out("output.enc", std::ios::binary);
+  std::string filename;
+  if(cfg.filename != "" && cfg.filename.size() > 0) {
+    filename = cfg.filename;
+  } else {
+    filename = cfg.file + ".enc";
+  }
+
+  std::ofstream out(filename.c_str(), std::ios::binary);
   out.write(reinterpret_cast<char*>(boxNonce), sizeof boxNonce);
   out.write(reinterpret_cast<char*>(boxedKey), sizeof boxedKey);
   out.write(reinterpret_cast<char*>(header), sizeof header);

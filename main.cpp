@@ -26,6 +26,18 @@ Config parseArgs(int argc, char** argv) {
     if(arg == "--dir" || arg == "-d") {
       cfg.isDir = true;
     }
+    else if(arg == "--filename" && i+1 < argc) {
+      cfg.filename = argv[++i];
+    }
+    else if(arg.find("--filename=") == 0) {
+      if(arg.substr(11).length() < 1) {
+        std::cerr << "Invalid passkey.\n";
+        exit(1);
+      } else {
+        cfg.filename = arg.substr(11);
+      }
+    }
+
     else {
       std::cout << "Unknown argument: " << arg << "\n";
       exit(1);
