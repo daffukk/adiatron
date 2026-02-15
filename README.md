@@ -4,10 +4,12 @@ It uses public-key cryptography for secure key exchange and authenticated stream
 encryption to process large files with constant memory usage.
 
 ## TODO
-- [ ] Add -o argument for customizing output filename
-- [ ] Add keys passphrase support
-- [ ] Add --keydir, --pubkey and --seckey arguments for customizing keys directory
-- [ ] Add --version flag
+- [ ] Auto archiving if directory is given
+- [ ] Select usb drive for keys
+- [ ] -o argument for customizing output filename
+- [ ] Keys passphrase support
+- [ ] --keydir, --pubkey and --seckey arguments for customizing keys directory
+- [ ] --version flag
 
 ## How it works
 
