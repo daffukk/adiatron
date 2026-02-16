@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <sodium/crypto_box.h>
@@ -38,4 +39,16 @@ void generateKeypair() {
   sc.write(reinterpret_cast<const char*>(secretKey), crypto_box_SECRETKEYBYTES);
   pk.close();
   sc.close();
+}
+
+bool tarArchive(const std::string& dir) {
+
+  if(system("tar --version > /dev/null 2>&1") != 0) {
+    std::cerr << "Tar not found.\n";
+    return false;
+  }
+
+  std::string cmd = "tar -cf archive.tar --numeric-owner --owner=0 --group=0"
+                    " --mtime='1970-01-01' --sort=name " + dir;
+  return system(cmd.c_str()) == 0;
 }

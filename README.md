@@ -29,6 +29,7 @@ Here is an encrypted file structure:
 ### Dependencies
 - libsodium
 - cmake
+- tar(optional)
 
 ### Build
 ```bash
@@ -47,7 +48,7 @@ To decrypt files:
 ```bash
 ./adiatron decrypt file.mp4.enc
 ```
-
+Type `./adiatron` to display all examples and options.
 
 > [!NOTE]
 > See [Tips and Issues](#tips-and-issues) section for more information.

@@ -26,7 +26,14 @@ namespace fs = std::filesystem;
   }
 
 
-  std::ifstream file(cfg.file,  std::ios::binary);
+  std::string inputfile = cfg.file;
+  if(cfg.isDir) {
+    tarArchive(cfg.file);
+    inputfile = "archive.tar";
+  }
+
+
+  std::ifstream file(inputfile,  std::ios::binary);
   if(!file) {
     std::cerr << "Cannot open input file\n";
     return -1;
@@ -105,6 +112,10 @@ namespace fs = std::filesystem;
         crypto_secretstream_xchacha20poly1305_TAG_MESSAGE
     );
     out.write(reinterpret_cast<char*>(outBuffer), out_len);
+  }
+
+  if(cfg.isDir) {
+    fs::remove("archive.tar");
   }
 
   std::cout << "Encrypted successfully\n";
