@@ -13,31 +13,21 @@ struct Config {
   std::string file;
   bool isDir = false;
   std::string filename = "";
+  std::string keysDir = "keys";
+  std::string pubDir = "";
+  std::string secDir = "";
 };
 
 
+namespace fs = std::filesystem;
+void findKeys(fs::path& pubPath, fs::path&secPath, Config cfg);
 void generateKeypair();
 int encrypt(Config cfg);
 int decrypt(Config cfg);
 bool tarArchive(const std::string& dir);
 
 
-// Adiatron flags
 
-namespace fs = std::filesystem;
-inline void findKeys(fs::path& pubPath, fs::path&secPath){
-  for (const auto& entry : fs::recursive_directory_iterator("keys")) {
-
-    const auto& path = entry.path();
-    
-    if (entry.path().extension() == ".pub") {
-      pubPath = entry.path();
-    }
-    else if(!path.has_extension() && entry.is_regular_file()){
-      secPath = entry.path();
-    }
-  }
-}
 
 inline void printHelp(int argc, char* argv[]) {
   std::cout

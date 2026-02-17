@@ -52,3 +52,17 @@ bool tarArchive(const std::string& dir) {
                     " --mtime='1970-01-01' --sort=name " + dir;
   return system(cmd.c_str()) == 0;
 }
+
+void findKeys(fs::path& pubPath, fs::path&secPath, Config cfg){
+  for (const auto& entry : fs::recursive_directory_iterator(cfg.keysDir)) {
+
+    const auto& path = entry.path();
+    
+    if (entry.path().extension() == ".pub") {
+      pubPath = entry.path();
+    }
+    else if(!path.has_extension() && entry.is_regular_file()){
+      secPath = entry.path();
+    }
+  }
+}

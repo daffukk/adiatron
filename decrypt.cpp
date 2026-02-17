@@ -14,7 +14,7 @@
 int decrypt(Config cfg) {
 namespace fs = std::filesystem;
 
-   if(!fs::is_directory("keys")) {
+  if(!fs::is_directory(cfg.keysDir)) {
     std::cout << "Generating keys...\n";
     generateKeypair();
   }
@@ -37,7 +37,7 @@ namespace fs = std::filesystem;
   unsigned char secretKey[crypto_box_SECRETKEYBYTES];
 
   fs::path pubPath, secPath;
-  findKeys(pubPath, secPath);
+  findKeys(pubPath, secPath, cfg);
 
   std::ifstream pubFile(pubPath, std::ios::binary);
   pubFile.read(reinterpret_cast<char*>(publicKey), crypto_box_PUBLICKEYBYTES);
@@ -90,7 +90,7 @@ namespace fs = std::filesystem;
     unsigned char tag;
     if(crypto_secretstream_xchacha20poly1305_pull(&state, outBuffer, &out_len, &tag, fileBuffer, readBytes, nullptr, 0) != 0) {
       std::cerr << "Failed to decrypt file. Maybe it's corrupted or forged.\n";
-      return -1;
+      return 1;
     }
 
     out.write(reinterpret_cast<char*>(outBuffer), out_len);

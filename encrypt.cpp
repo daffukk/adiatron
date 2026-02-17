@@ -14,7 +14,7 @@
 int encrypt(Config cfg) {
 namespace fs = std::filesystem;
  
-  if(!fs::is_directory("keys")) {
+  if(!fs::is_directory(cfg.keysDir)) {
     std::cout << "Generating keys...\n";
     generateKeypair();
   }
@@ -45,7 +45,7 @@ namespace fs = std::filesystem;
   unsigned char secretKey[crypto_box_SECRETKEYBYTES];
 
   fs::path pubPath, secPath;
-  findKeys(pubPath, secPath);
+  findKeys(pubPath, secPath, cfg);
 
   std::ifstream pubFile(pubPath, std::ios::binary);
   std::ifstream secFile(secPath, std::ios::binary);
