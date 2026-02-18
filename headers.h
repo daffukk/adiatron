@@ -41,7 +41,8 @@ inline void printHelp(int argc, char* argv[]) {
     << "Options:\n"
     << "Flags can be used in --filename cookies.png or --filename=cookies.png format\n"
     << "\t-d, --dir \t You can specify a folder, it will automatically be archived into anonymous .tar archive and encrypted.\n"
-    << "\t--filename \t Specify an output filename.\n";
+    << "\t-o, --filename \t Specify an output filename.\n"
+    << "\t--keydir \t Specify 'keys' directory location.\n";
 }
 
 

@@ -6,7 +6,6 @@ encryption to process large files with constant memory usage.
 ## TODO
 - [ ] Keys selection(TUI)
 - [ ] Select usb drive for keys
-- [ ] -o argument for customizing output filename
 - [ ] Keys passphrase support
 - [ ] --keydir, --pubkey and --seckey arguments for customizing keys directory
 - [ ] --version flag

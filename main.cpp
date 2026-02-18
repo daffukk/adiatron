@@ -27,7 +27,7 @@ Config parseArgs(int argc, char** argv) {
       cfg.isDir = true;
     }
 
-    else if(arg == "--filename" && i+1 < argc) {
+    else if((arg == "--filename" || arg == "-o") && i+1 < argc) {
       cfg.filename = argv[++i];
     }
 
@@ -37,10 +37,19 @@ Config parseArgs(int argc, char** argv) {
 
     else if(arg.find("--filename=") == 0) {
       if(arg.substr(11).length() < 1) {
-        std::cerr << "Invalid passkey.\n";
+        std::cerr << "Invalid filename.\n";
         exit(1);
       } else {
         cfg.filename = arg.substr(11);
+      }
+    }
+
+    else if(arg.find("-o=") == 0) {
+      if(arg.substr(3).length() < 1) {
+        std::cerr << "Invalid filename.\n";
+        exit(1);
+      } else {
+        cfg.filename = arg.substr(3);
       }
     }
 
