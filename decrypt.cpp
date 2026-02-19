@@ -14,9 +14,11 @@
 int decrypt(Config cfg) {
 namespace fs = std::filesystem;
 
-  if(!fs::is_directory(cfg.keysDir)) {
-    std::cout << "Generating keys...\n";
-    generateKeypair();
+  if(cfg.pubDir.length() < 1 && cfg.secDir.length() < 1) {
+    if(!fs::is_directory(cfg.keysDir)) {
+      std::cout << "Generating keys...\n";
+      generateKeypair();
+    }
   }
 
 

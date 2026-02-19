@@ -13,10 +13,14 @@
 
 int encrypt(Config cfg) {
 namespace fs = std::filesystem;
- 
-  if(!fs::is_directory(cfg.keysDir)) {
-    std::cout << "Generating keys...\n";
-    generateKeypair();
+
+  if(cfg.pubDir.length() > 0 && cfg.secDir.length() > 0) {
+    std::cout << "Keys found.\n";
+  } else {
+    if(!fs::is_directory(cfg.keysDir)) {
+      std::cout << "Generating keys...\n";
+      generateKeypair();
+    }
   }
 
 

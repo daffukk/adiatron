@@ -35,6 +35,14 @@ Config parseArgs(int argc, char** argv) {
       cfg.keysDir = argv[++i];
     }
 
+    else if(arg == "--pkey" && i+1 < argc) {
+      cfg.pubDir = argv[++i];
+    }
+
+    else if(arg == "--skey" && i+1 < argc) {
+      cfg.secDir = argv[++i];
+    }
+
     else if(arg.find("--filename=") == 0) {
       if(arg.substr(11).length() < 1) {
         std::cerr << "Invalid filename.\n";
@@ -59,6 +67,24 @@ Config parseArgs(int argc, char** argv) {
         exit(1);
       } else {
         cfg.keysDir = arg.substr(11);
+      }
+    }
+
+    else if(arg.find("--pkey=") == 0) {
+      if(arg.substr(7).length() < 1) {
+        std::cerr << "Invalid public key.\n";
+        exit(1);
+      } else {
+        cfg.pubDir = arg.substr(7);
+      }
+    }
+
+    else if(arg.find("--skey=") == 0) {
+      if(arg.substr(7).length() < 1) {
+        std::cerr << "Invalid secret key.\n";
+        exit(1);
+      } else {
+        cfg.secDir = arg.substr(7);
       }
     }
 
