@@ -4,6 +4,8 @@ It uses public-key cryptography for secure key exchange and authenticated stream
 encryption to process large files with constant memory usage.
 
 ## TODO
+- [ ] Optimize process!!!
+- [ ] Create archiving system for --dir
 - [ ] Keys selection(TUI)
 - [ ] Select usb drive for keys
 - [ ] Progress bar
