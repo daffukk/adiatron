@@ -5,7 +5,7 @@
 #include <string>
 
 
-constexpr size_t CHUNK_SIZE = 64 * 1024;
+constexpr size_t CHUNK_SIZE = 2 << 20;
 
 
 struct Config {
@@ -24,7 +24,6 @@ void findKeys(fs::path& pubPath, fs::path&secPath, Config cfg);
 void generateKeypair();
 int encrypt(Config cfg);
 int decrypt(Config cfg);
-bool tarArchive(const std::string& dir);
 
 
 

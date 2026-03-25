@@ -30,18 +30,29 @@ namespace fs = std::filesystem;
   }
 
 
-  std::string inputfile = cfg.file;
+  FILE* input = nullptr;
+  std::ifstream file;
   if(cfg.isDir) {
-    tarArchive(cfg.file);
-    inputfile = "archive.tar";
+    std::string cmd = 
+      "tar -cf - --numeric-owner --owner=0 --group=0 "
+      "--mtime='1970-01-01' --sort=name " + cfg.file;
+    
+    input = popen(cmd.c_str(), "r");
+    setvbuf(input, NULL, _IOFBF, 1<<20);
+
+    if(!input) {
+      std::cerr << "Cannot open tar stream\n";
+      return -1;
+    }
+  } else {
+    file.open(cfg.file, std::ios::binary);
+
+    if(!file) {
+      std::cerr << "Cannot open input file\n";
+      return -1;
+    }
   }
 
-
-  std::ifstream file(inputfile,  std::ios::binary);
-  if(!file) {
-    std::cerr << "Cannot open input file\n";
-    return -1;
-  }
 
   // Reading keys
 
@@ -99,9 +110,15 @@ namespace fs = std::filesystem;
   unsigned char fileBuffer[CHUNK_SIZE];
   unsigned char outBuffer[CHUNK_SIZE + crypto_secretstream_xchacha20poly1305_ABYTES];
 
-  while(file.good()) {
-    file.read(reinterpret_cast<char*>(fileBuffer), CHUNK_SIZE);
-    std::streamsize readBytes = file.gcount();
+  while(true) {
+    size_t readBytes;
+
+    if(cfg.isDir) {
+      readBytes = fread(fileBuffer, 1, CHUNK_SIZE, input);
+    } else {
+      file.read(reinterpret_cast<char*>(fileBuffer), CHUNK_SIZE);
+      readBytes = file.gcount();
+    }
 
     if(readBytes <= 0) break;
 
@@ -119,7 +136,7 @@ namespace fs = std::filesystem;
   }
 
   if(cfg.isDir) {
-    fs::remove("archive.tar");
+    pclose(input);
   }
 
   std::cout << "Encrypted successfully\n";
