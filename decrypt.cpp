@@ -94,7 +94,9 @@ namespace fs = std::filesystem;
   }
   size_t decryptedBytes = 0;
   std::string progressBar(20, ' ');
+  std::string sign;
   
+  std::cout << "Decrypting " << convertBytes((double)filesize, sign) << sign << "\n";
 
   while(file.good()) {
     file.read(reinterpret_cast<char*>(fileBuffer), CHUNK_SIZE + crypto_secretstream_xchacha20poly1305_ABYTES);

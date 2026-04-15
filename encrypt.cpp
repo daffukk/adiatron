@@ -124,6 +124,9 @@ namespace fs = std::filesystem;
   size_t encryptedBytes = 0;
   std::string progressBar(20, ' ');
 
+  std::string sign;
+
+  std::cout << "Encrypting " << convertBytes((double)filesize, sign) << sign << "\n"; 
 
   while(true) {
     size_t readBytes;
