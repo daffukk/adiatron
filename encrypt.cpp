@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <ostream>
 #include <string>
 #include <fstream>
 #include <iostream>
@@ -110,6 +111,20 @@ namespace fs = std::filesystem;
   unsigned char fileBuffer[CHUNK_SIZE];
   unsigned char outBuffer[CHUNK_SIZE + crypto_secretstream_xchacha20poly1305_ABYTES];
 
+  size_t filesize=0;
+  if(!cfg.isDir) {
+    filesize = fs::file_size(cfg.file);
+  } else {
+    for(fs::recursive_directory_iterator it(cfg.file); it!=fs::recursive_directory_iterator(); ++it) {
+      if(!fs::is_directory(*it)) {
+        filesize += fs::file_size(*it);
+      }
+    }
+  }
+  size_t encryptedBytes = 0;
+  std::string progressBar(20, ' ');
+
+
   while(true) {
     size_t readBytes;
 
@@ -119,7 +134,7 @@ namespace fs = std::filesystem;
       file.read(reinterpret_cast<char*>(fileBuffer), CHUNK_SIZE);
       readBytes = file.gcount();
     }
-
+    
     if(readBytes <= 0) break;
 
     unsigned long long out_len;
@@ -133,12 +148,20 @@ namespace fs = std::filesystem;
         crypto_secretstream_xchacha20poly1305_TAG_MESSAGE
     );
     out.write(reinterpret_cast<char*>(outBuffer), out_len);
+    encryptedBytes += readBytes;
+
+    int percent = static_cast<int>((double(encryptedBytes) / double(filesize)) * 100);
+    int filled = percent * progressBar.size() / 100;
+
+    for(int i=0; i<filled; i++) progressBar[i] = '=';
+
+    std::cout << "\r["<< progressBar << "] " << percent << "% " << std::flush;
   }
 
   if(cfg.isDir) {
     pclose(input);
   }
 
-  std::cout << "Encrypted successfully\n";
+  std::cout << "\nEncrypted successfully\n";
   return 0;
 }

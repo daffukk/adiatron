@@ -82,6 +82,20 @@ namespace fs = std::filesystem;
   unsigned char fileBuffer[CHUNK_SIZE + crypto_secretstream_xchacha20poly1305_ABYTES];
   unsigned char outBuffer[CHUNK_SIZE];
 
+  size_t filesize=0;
+  if(!cfg.isDir) {
+    filesize = fs::file_size(cfg.file);
+  } else {
+    for(fs::recursive_directory_iterator it(cfg.file); it!=fs::recursive_directory_iterator(); ++it) {
+      if(!fs::is_directory(*it)) {
+        filesize += fs::file_size(*it);
+      }
+    }
+  }
+  size_t decryptedBytes = 0;
+  std::string progressBar(20, ' ');
+  
+
   while(file.good()) {
     file.read(reinterpret_cast<char*>(fileBuffer), CHUNK_SIZE + crypto_secretstream_xchacha20poly1305_ABYTES);
     std::streamsize readBytes = file.gcount();
@@ -96,9 +110,18 @@ namespace fs = std::filesystem;
     }
 
     out.write(reinterpret_cast<char*>(outBuffer), out_len);
+
+    decryptedBytes += readBytes;
+
+    int percent = static_cast<int>((double(decryptedBytes) / double(filesize)) * 100);
+    int filled = percent * progressBar.size() / 100;
+
+    for(int i=0; i<filled; i++) progressBar[i] = '=';
+
+    std::cout << "\r["<< progressBar << "] " << percent << "% " << std::flush;
   }
 
 
-  std::cout << "Decrypted successfully\n";
+  std::cout << "\nDecrypted successfully\n";
   return 0;
 }

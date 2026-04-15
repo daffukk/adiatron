@@ -5,10 +5,10 @@ encryption to process large files with constant memory usage.
 
 ## TODO
 - [ ] Optimize process!!!
-- [ ] Create archiving system for --dir
+- [ ] Dividing encrypted file to volumes(e.g. encrypted.enc.0001, encrypted.enc.0002) by using --volume or --vol-size flags
+- [ ] .config/adiatron default configuration directory
 - [ ] Keys selection(TUI)
 - [ ] Select usb drive for keys
-- [ ] Progress bar
 - [ ] Keys passphrase support
 - [ ] --version flag
 
