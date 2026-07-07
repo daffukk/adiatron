@@ -11,6 +11,9 @@ encryption to process large files with constant memory usage.
 - [ ] Select usb drive for keys
 - [ ] Keys passphrase support
 - [ ] --version flag
+- [ ] Hyper-secure mode
+    - [ ] Partially decrypt a directory to list filenames
+    - [ ] Select a file from an encrypted directory by filename or hash, decrypt it into RAM, and ensure it is not written to disk, swap, or cache
 
 ## How it works
 
