@@ -1,19 +1,100 @@
+#include <cstdint>
 #include <filesystem>
+#include <iosfwd>
 #include <ostream>
 #include <string>
+#include <vector>
 #include <fstream>
 #include <iostream>
 #include <sodium.h>
 #include <sodium/core.h>
+#include <sodium/randombytes.h>
 #include <sodium/crypto_box.h>
 #include <sodium/crypto_secretstream_xchacha20poly1305.h>
+#include <sodium/crypto_kdf.h>
+#include <sodium/crypto_secretbox.h>
 #include "headers.h"
 
 
 
 
+
+std::vector<fs::path> collectFiles(const Config& cfg) {
+  std::vector<fs::path> files;
+
+  if(fs::is_directory(cfg.file)) {
+    for(const auto& dirEntry : fs::recursive_directory_iterator(cfg.file)) {
+      if(!fs::is_directory(dirEntry)) {
+        files.push_back(dirEntry.path());
+      }
+    }
+  } else {
+    files.push_back(cfg.file);
+  }
+  return files;
+}
+
+
+
+std::vector<uint8_t> encryptMeta(const FileEntry& e, const unsigned char* streamKey) {
+  ByteWriter w;
+  w.writeString(e.path);
+  w.writeU64(e.dataSize);
+
+  unsigned char metaKey[crypto_secretbox_KEYBYTES];
+  crypto_kdf_derive_from_key(metaKey, sizeof metaKey, e.id, "FILEMETA", streamKey);
+
+  unsigned char nonce[crypto_secretbox_NONCEBYTES];
+  randombytes_buf(nonce, sizeof nonce);
+
+  std::vector<uint8_t> ciphertext(w.buf.size() + crypto_secretbox_MACBYTES);
+  crypto_secretbox_easy(ciphertext.data(), w.buf.data(), w.buf.size(), nonce, metaKey);
+
+  std::vector<uint8_t> result;
+  result.insert(result.end(), nonce, nonce + sizeof nonce);
+  result.insert(result.end(), ciphertext.begin(), ciphertext.end());
+  return result;
+}
+
+
+
+uint64_t encryptFileData(std::ofstream& out, const fs::path& filePath, uint64_t entryId, const unsigned char* streamKey) {
+  unsigned char dataKey[crypto_secretstream_xchacha20poly1305_KEYBYTES];
+  crypto_kdf_derive_from_key(dataKey, sizeof dataKey, entryId, "FILEDATA", streamKey);
+
+  crypto_secretstream_xchacha20poly1305_state state;
+  unsigned char header[crypto_secretstream_xchacha20poly1305_HEADERBYTES];
+  crypto_secretstream_xchacha20poly1305_init_push(&state, header, dataKey);
+
+  out.write(reinterpret_cast<char*>(header), sizeof header);
+  uint64_t written = sizeof header;
+
+  std::ifstream file(filePath, std::ios::binary);
+  unsigned char fileBuffer[CHUNK_SIZE];
+  unsigned char outBuffer[CHUNK_SIZE + crypto_secretstream_xchacha20poly1305_ABYTES];
+
+  while(true) {
+    file.read(reinterpret_cast<char*>(fileBuffer), CHUNK_SIZE);
+    size_t readBytes = file.gcount();
+    if(readBytes <= 0) break;
+
+    bool isLast = file.eof();
+    unsigned char tag = isLast ? crypto_secretstream_xchacha20poly1305_TAG_FINAL : crypto_secretstream_xchacha20poly1305_TAG_MESSAGE;
+
+    unsigned long long outLen;
+    crypto_secretstream_xchacha20poly1305_push(&state, outBuffer, &outLen, fileBuffer, readBytes, nullptr, 0, tag);
+    out.write(reinterpret_cast<char*>(outBuffer), outLen);
+    written += outLen;
+  }
+  return written;
+}
+
+
+
+
+
+
 int encrypt(Config cfg) {
-namespace fs = std::filesystem;
 
   if(cfg.pubDir.length() > 0 && cfg.secDir.length() > 0) {
     std::cout << "Keys found.\n";
@@ -31,28 +112,7 @@ namespace fs = std::filesystem;
   }
 
 
-  FILE* input = nullptr;
-  std::ifstream file;
-  if(cfg.isDir) {
-    std::string cmd = 
-      "tar -cf - --numeric-owner --owner=0 --group=0 "
-      "--mtime='1970-01-01' --sort=name " + cfg.file;
-    
-    input = popen(cmd.c_str(), "r");
-    setvbuf(input, NULL, _IOFBF, 1<<20);
 
-    if(!input) {
-      std::cerr << "Cannot open tar stream\n";
-      return -1;
-    }
-  } else {
-    file.open(cfg.file, std::ios::binary);
-
-    if(!file) {
-      std::cerr << "Cannot open input file\n";
-      return -1;
-    }
-  }
 
 
   // Reading keys
@@ -85,12 +145,6 @@ namespace fs = std::filesystem;
   }
 
 
-  crypto_secretstream_xchacha20poly1305_state state;
-  unsigned char header[crypto_secretstream_xchacha20poly1305_HEADERBYTES];
-
-  crypto_secretstream_xchacha20poly1305_init_push(&state, header, streamKey);
-
-
   // Writing official data into file 
 
   std::string filename;
@@ -101,69 +155,53 @@ namespace fs = std::filesystem;
   }
 
   std::ofstream out(filename.c_str(), std::ios::binary);
+
   out.write(reinterpret_cast<char*>(boxNonce), sizeof boxNonce);
   out.write(reinterpret_cast<char*>(boxedKey), sizeof boxedKey);
-  out.write(reinterpret_cast<char*>(header), sizeof header);
 
 
-  // Encypting file by chunks
+  std::vector<fs::path> files = collectFiles(cfg);
 
-  unsigned char fileBuffer[CHUNK_SIZE];
-  unsigned char outBuffer[CHUNK_SIZE + crypto_secretstream_xchacha20poly1305_ABYTES];
+  uint64_t fileCount = files.size();
+  out.write(reinterpret_cast<char*>(&fileCount), sizeof fileCount);
 
-  size_t filesize=0;
-  if(!cfg.isDir) {
-    filesize = fs::file_size(cfg.file);
-  } else {
-    for(fs::recursive_directory_iterator it(cfg.file); it!=fs::recursive_directory_iterator(); ++it) {
-      if(!fs::is_directory(*it)) {
-        filesize += fs::file_size(*it);
-      }
-    }
-  }
-  size_t encryptedBytes = 0;
-  std::string progressBar(20, ' ');
+  uint64_t nextId = 0;
+  bool isDirSource = fs::is_directory(cfg.file);
 
-  std::string sign;
+  for(const auto& filePath : files) {
+    FileEntry e;
+    e.id = nextId++;
+    e.type = EntryType::file;
 
-  std::cout << "Encrypting " << convertBytes((double)filesize, sign) << sign << "\n"; 
-
-  while(true) {
-    size_t readBytes;
-
-    if(cfg.isDir) {
-      readBytes = fread(fileBuffer, 1, CHUNK_SIZE, input);
+    if(isDirSource) {
+      e.path = fs::relative(filePath, cfg.file).generic_string();
     } else {
-      file.read(reinterpret_cast<char*>(fileBuffer), CHUNK_SIZE);
-      readBytes = file.gcount();
+      e.path = filePath.filename().generic_string();
     }
+
+    e.dataSize = fs::file_size(filePath);
+
+    auto metaBlock = encryptMeta(e, streamKey);
+    uint64_t metaLen = metaBlock.size();
+    out.write(reinterpret_cast<char*>(&metaLen), sizeof metaLen);
+    out.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());
+
+    std::streampos lenPos = out.tellp();
+    uint64_t placeholder = 0;
+    out.write(reinterpret_cast<char*>(&placeholder), sizeof placeholder);
+
+    uint64_t encLen = encryptFileData(out, filePath, e.id, streamKey);
+
+    std::streampos afterPos = out.tellp();
+    out.seekp(lenPos);
+    out.write(reinterpret_cast<char*>(&encLen), sizeof encLen);
+    out.seekp(afterPos);
+
     
-    if(readBytes <= 0) break;
-
-    unsigned long long out_len;
-    crypto_secretstream_xchacha20poly1305_push(
-        &state,
-        outBuffer,
-        &out_len,
-        fileBuffer,
-        readBytes,
-        nullptr, 0,
-        crypto_secretstream_xchacha20poly1305_TAG_MESSAGE
-    );
-    out.write(reinterpret_cast<char*>(outBuffer), out_len);
-    encryptedBytes += readBytes;
-
-    int percent = static_cast<int>((double(encryptedBytes) / double(filesize)) * 100);
-    int filled = percent * progressBar.size() / 100;
-
-    for(int i=0; i<filled; i++) progressBar[i] = '=';
-
-    std::cout << "\r["<< progressBar << "] " << percent << "% " << std::flush;
+    std::string sign;
+    std::cout << "Encrypted: " << e.path << " (" << convertBytes(e.dataSize, sign) << sign << ")\n";
   }
 
-  if(cfg.isDir) {
-    pclose(input);
-  }
 
   std::cout << "\nEncrypted successfully\n";
   return 0;

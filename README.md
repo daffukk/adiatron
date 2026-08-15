@@ -4,6 +4,7 @@ It uses public-key cryptography for secure key exchange and authenticated stream
 encryption to process large files with constant memory usage.
 
 ## TODO
+- [ ] Rewrite instructions and readme, too tired rn
 - [ ] Optimize process!!!
 - [ ] Dividing encrypted file to volumes(e.g. encrypted.enc.0001, encrypted.enc.0002) by using --volume or --vol-size flags
 - [ ] .config/adiatron default configuration directory
@@ -14,6 +15,14 @@ encryption to process large files with constant memory usage.
 - [ ] Hyper-secure mode
     - [ ] Partially decrypt a directory to list filenames
     - [ ] Select a file from an encrypted directory by filename or hash, decrypt it into RAM, and ensure it is not written to disk, swap, or cache
+
+filesystem:
+- [ ] Symlink and hardlink support
+- [ ] List option to list encrypted archive content without decrypting it
+- [ ] Partially decrypt archive(for example take 1 file)
+- [ ] Add files in encrypted archive 
+- [ ] Progress bar 
+- [ ] Encrypt file entries(keys headers and so on) and add encrypted "roadmap" to manage them
 
 ## How it works
 

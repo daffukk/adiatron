@@ -23,11 +23,7 @@ Config parseArgs(int argc, char** argv) {
   for(; i < argc; i++) {
     std::string arg = argv[i];
     
-    if(arg == "--dir" || arg == "-d") {
-      cfg.isDir = true;
-    }
-
-    else if((arg == "--filename" || arg == "-o") && i+1 < argc) {
+    if((arg == "--filename" || arg == "-o") && i+1 < argc) {
       cfg.filename = argv[++i];
     }
 
