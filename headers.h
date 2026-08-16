@@ -16,11 +16,15 @@ constexpr uint64_t TiB = 1ULL << 40;
 
 struct Config {
   std::string mode;
+
   std::string file;
   std::string filename = "";
+
   std::string keysDir = "keys";
   std::string pubDir = "";
   std::string secDir = "";
+  
+  bool verbose = false;
 };
 
 

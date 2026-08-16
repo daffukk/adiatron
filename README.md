@@ -4,7 +4,9 @@ It uses public-key cryptography for secure key exchange and authenticated stream
 encryption to process large files with constant memory usage.
 
 ## TODO
+- [ ] Replace build.sh with makefile
 - [ ] Rewrite instructions and readme, too tired rn
+- [ ] Write some comments in code
 - [ ] Optimize process!!!
 - [ ] Dividing encrypted file to volumes(e.g. encrypted.enc.0001, encrypted.enc.0002) by using --volume or --vol-size flags
 - [ ] .config/adiatron default configuration directory
@@ -23,6 +25,7 @@ filesystem:
 - [ ] Add files in encrypted archive 
 - [ ] Progress bar 
 - [ ] Encrypt file entries(keys headers and so on) and add encrypted "roadmap" to manage them
+- [ ] CLI autocompletion
 
 ## How it works
 

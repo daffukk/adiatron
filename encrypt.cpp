@@ -199,7 +199,11 @@ int encrypt(Config cfg) {
 
     
     std::string sign;
-    std::cout << "Encrypted: " << e.path << " (" << convertBytes(e.dataSize, sign) << sign << ")\n";
+    std::cout << (cfg.verbose ? "" : "\r\033[K") 
+      << "Encrypted: " 
+      << e.path 
+      << " (" << convertBytes(e.dataSize, sign) << sign << ")";
+    cfg.verbose ? std::cout << "\n" : std::cout << std::flush;
   }
 
 

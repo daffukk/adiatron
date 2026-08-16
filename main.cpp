@@ -39,6 +39,10 @@ Config parseArgs(int argc, char** argv) {
       cfg.secDir = argv[++i];
     }
 
+    else if(arg == "--verbose" || arg == "-v") {
+      cfg.verbose = true;
+    }
+
     else if(arg.find("--filename=") == 0) {
       if(arg.substr(11).length() < 1) {
         std::cerr << "Invalid filename.\n";

@@ -4,6 +4,7 @@
 #include <fstream>
 #include <ios>
 #include <iostream>
+#include <ostream>
 #include <sodium.h>
 #include <sodium/core.h>
 #include <sodium/crypto_aead_chacha20poly1305.h>
@@ -211,7 +212,11 @@ int decrypt(Config cfg) {
     }
 
     std::string sign;
-    std::cout << "Decrypted: " << e.path << " (" << convertBytes(e.dataSize, sign) << sign << ")\n";
+    std::cout << (cfg.verbose ? "" : "\r\033[K") 
+      << "Decrypted: " 
+      << e.path 
+      << " (" << convertBytes(e.dataSize, sign) << sign << ")";
+    cfg.verbose ? std::cout << "\n" : std::cout << std::flush;
   }
 
 
