@@ -4,7 +4,7 @@ It uses public-key cryptography for secure key exchange and authenticated stream
 encryption to process large files with constant memory usage.
 
 ## TODO
-- [ ] Replace build.sh with makefile
+- [ ] Fix --help command(full paths)
 - [ ] Rewrite instructions and readme, too tired rn
 - [ ] Write some comments in code
 - [ ] Optimize process!!!
