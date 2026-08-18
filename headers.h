@@ -1,6 +1,8 @@
 #pragma once
 #include <stdexcept>
+#include <sys/ioctl.h>
 #include <vector>
+#include <unistd.h>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
@@ -37,6 +39,8 @@ int decrypt(Config cfg);
 
 double convertBytes(double n, std::string& sign);
 
+int getTerminalWidth();
+std::string truncateMiddle(const std::string& path, size_t maxLen);
 
 // ==================
 //  FILESYSTEM

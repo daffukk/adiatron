@@ -1,12 +1,16 @@
+#include <asm-generic/ioctls.h>
+#include <cstddef>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <sys/ioctl.h>
+#include <sys/unistd.h>
 #include <sodium/crypto_box.h>
 #include <sodium/crypto_generichash.h>
 #include <string>
 #include <sodium.h>
 #include <filesystem>
-#include <vector>
+#include <unistd.h>
 #include "headers.h"
 
 
@@ -96,6 +100,23 @@ double convertBytes(double n, std::string& sign) {
 
 }
 
+int getTerminalWidth() {
+  struct winsize w;
+  if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0) return w.ws_col - 40;
+  return 80;
+}
+
+
+std::string truncateMiddle(const std::string& path, size_t maxLen) {
+  if(path.size() <= maxLen) return path;
+
+  size_t keep = maxLen - 3;
+  size_t headLen = keep /2 ;
+  size_t tailLen = keep - headLen;
+
+  return path.substr(0, headLen) + "..." + path.substr(path.size() - tailLen);
+}
+
 
 // ==================
 //  FILESYSTEM
@@ -112,12 +133,12 @@ void writeEntry(ByteWriter& w, const FileEntry& e) {
 
 FileEntry readEntry(ByteReader &r) {
   FileEntry e;
-  e.id = r.readU64();
-  e.type = static_cast<EntryType>(r.readU8());
-  e.path = r.readString();
-  e.dataSize = r.readU64();
+  e.id            = r.readU64();
+  e.type          = static_cast<EntryType>(r.readU8());
+  e.path          = r.readString();
+  e.dataSize      = r.readU64();
   e.encryptedSize = r.readU64();
-  e.dataOffset = r.readU64();
+  e.dataOffset    = r.readU64();
   return e;
 }
 

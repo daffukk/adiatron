@@ -151,7 +151,12 @@ int encrypt(Config cfg) {
   if(cfg.filename != "" && cfg.filename.size() > 0) {
     filename = cfg.filename;
   } else {
-    filename = cfg.file + ".enc";
+    fs::path p(cfg.file);
+
+    if(p.filename().empty()) {
+      p = p.parent_path();
+    }
+    filename = p.string() + ".enc";
   }
 
   std::ofstream out(filename.c_str(), std::ios::binary);
@@ -167,6 +172,8 @@ int encrypt(Config cfg) {
 
   uint64_t nextId = 0;
   bool isDirSource = fs::is_directory(cfg.file);
+
+  int terminalWidth = getTerminalWidth();
 
   for(const auto& filePath : files) {
     FileEntry e;
@@ -199,14 +206,17 @@ int encrypt(Config cfg) {
 
     
     std::string sign;
+    double precent = (double(e.id) / files.size()) * 100;
+
     std::cout << (cfg.verbose ? "" : "\r\033[K") 
+      << e.id << "/" << files.size() << "(" << std::fixed << std::setprecision(2) << precent << "%) "
       << "Encrypted: " 
-      << e.path 
+      << truncateMiddle(e.path, terminalWidth)
       << " (" << convertBytes(e.dataSize, sign) << sign << ")";
     cfg.verbose ? std::cout << "\n" : std::cout << std::flush;
   }
 
 
-  std::cout << "\nEncrypted successfully\n";
+  std::cout << "\n==> Encrypted successfully.\n";
   return 0;
 }

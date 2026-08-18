@@ -161,12 +161,18 @@ int decrypt(Config cfg) {
   if(cfg.filename != "" && cfg.filename.size() > 0) {
     outDirName = cfg.filename;
   } else {
-    outDirName = cfg.file + ".out";
+    fs::path p(cfg.file);
+
+    if(p.filename().empty()) {
+      p = p.parent_path();
+    }
+    outDirName = p.string() + ".out";
   }
 
   fs::create_directories(outDirName);
   
 
+  int terminalWidth = getTerminalWidth();
   uint64_t fileCount = 0;
   file.read(reinterpret_cast<char*>(&fileCount), sizeof fileCount);
   if(file.gcount() != static_cast<std::streamsize>(sizeof fileCount)) {
@@ -174,7 +180,7 @@ int decrypt(Config cfg) {
     return -1;
   }
 
-  std::cout << "Decrypting " << fileCount<< " file(s)\n";
+  std::cout << "Decrypting " << fileCount << " file(s)\n";
 
 
   for(uint64_t i=0; i < fileCount; i++) {
@@ -212,14 +218,17 @@ int decrypt(Config cfg) {
     }
 
     std::string sign;
+    double precent = (double(e.id) / fileCount) * 100;
+
     std::cout << (cfg.verbose ? "" : "\r\033[K") 
+      << e.id << "/" << fileCount << "(" << std::fixed << std::setprecision(2) <<precent << "%) "
       << "Decrypted: " 
-      << e.path 
+      << truncateMiddle(e.path, terminalWidth)
       << " (" << convertBytes(e.dataSize, sign) << sign << ")";
     cfg.verbose ? std::cout << "\n" : std::cout << std::flush;
   }
 
 
-  std::cout << "\nDecrypted successfully\n";
+  std::cout << "\n==> Decrypted successfully\n";
   return 0;
 }
