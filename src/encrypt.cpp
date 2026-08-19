@@ -13,10 +13,14 @@
 #include <sodium/crypto_secretstream_xchacha20poly1305.h>
 #include <sodium/crypto_kdf.h>
 #include <sodium/crypto_secretbox.h>
-#include "headers.h"
+#include <adiatron/config.h>
+#include <adiatron/filesystem.h>
+#include <adiatron/serialization.h>
+#include <adiatron/commands.h>
+#include <adiatron/terminal.h>
+#include <adiatron/utils.h>
 
-
-
+namespace fs = std::filesystem;
 
 
 std::vector<fs::path> collectFiles(const Config& cfg) {
@@ -94,7 +98,7 @@ uint64_t encryptFileData(std::ofstream& out, const fs::path& filePath, uint64_t 
 
 
 
-int encrypt(Config cfg) {
+int encrypt(const Config& cfg) {
 
   if(cfg.pubDir.length() > 0 && cfg.secDir.length() > 0) {
     std::cout << "Keys found.\n";
@@ -110,9 +114,6 @@ int encrypt(Config cfg) {
     std::cerr << "Error sodium\n";
     return -1;
   }
-
-
-
 
 
   // Reading keys

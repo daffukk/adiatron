@@ -14,9 +14,14 @@
 #include <sodium/crypto_secretbox.h>
 #include <sys/types.h>
 #include <vector>
-#include "headers.h"
+#include <adiatron/config.h>
+#include <adiatron/filesystem.h>
+#include <adiatron/serialization.h>
+#include <adiatron/commands.h>
+#include <adiatron/terminal.h>
+#include <adiatron/utils.h>
 
-
+namespace fs = std::filesystem;
 
 
 
@@ -105,7 +110,7 @@ bool decryptFileData(std::ifstream& in, uint64_t dataLen, uint64_t entryId, cons
 
 
 
-int decrypt(Config cfg) {
+int decrypt(const Config& cfg) {
 
   if(cfg.pubDir.length() < 1 && cfg.secDir.length() < 1) {
     if(!fs::is_directory(cfg.keysDir)) {
