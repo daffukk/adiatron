@@ -142,7 +142,7 @@ int encrypt(const Config& cfg) {
   unsigned char boxedKey[crypto_box_MACBYTES + crypto_secretstream_xchacha20poly1305_KEYBYTES];
   if(crypto_box_easy(boxedKey, streamKey, sizeof streamKey, boxNonce, publicKey, secretKey) != 0) {
     std::cerr << "Failed to encrypt.\n";
-    return 1;
+    return -1;
   }
 
 

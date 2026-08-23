@@ -81,6 +81,8 @@ Type `./adiatron` to display all examples and options.
 
 
 ## TODO
+- [ ] Update readme
+    - [ ] Add information about list mode
 - [ ] Write some comments in code
 - [ ] Optimize process!!!
 - [ ] Dividing encrypted file to volumes(e.g. encrypted.enc.0001, encrypted.enc.0002) by using --volume or --vol-size flags
@@ -95,11 +97,10 @@ Type `./adiatron` to display all examples and options.
 
 filesystem:
 - [ ] Symlink and hardlink support
-- [ ] List option to list encrypted archive content without decrypting it
 - [ ] Partially decrypt archive(for example take 1 file)
 - [ ] Add files in encrypted archive 
 - [ ] Progress bar 
-- [ ] Encrypt file entries(keys headers and so on) and add encrypted "roadmap" to manage them
+- [ ] Encrypt file entries(keys and headers) and add encrypted "roadmap" to manage them
 - [ ] CLI autocompletion
 
 ## License

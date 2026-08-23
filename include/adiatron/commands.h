@@ -4,4 +4,5 @@
 
 int encrypt(const Config& cfg);
 int decrypt(const Config& cfg);
-void generateKeypair();
+int list(const Config& cfg);
+int generateKeypair();

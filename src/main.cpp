@@ -1,18 +1,27 @@
-#include <iostream>
+#include <adiatron/commands.h>
 #include <adiatron/config.h>
 #include <adiatron/utils.h>
-#include <adiatron/commands.h>
+#include <iostream>
 
 // General flags
 
 Config parseArgs(int argc, char** argv) {
   Config cfg;
-
-  if(argc < 2) exit(1);
+  if(argc < 2) {
+    printHelp(argc, argv);
+    exit(1);
+  }
 
   cfg.mode = argv[1];
 
-  if(cfg.mode == "keygen") return cfg;
+
+  if(std::find(modes.begin(), modes.end(), cfg.mode) == modes.end()) {
+    std::cout << "Invalid mode. Type --help for more information\n";
+    exit(1);
+  }
+
+
+  if(cfg.mode == "keygen" || cfg.mode == "--help") return cfg;
   if(argc < 3) {
     std::cerr << "File is not selected.\n";
     exit(1);
@@ -100,25 +109,23 @@ Config parseArgs(int argc, char** argv) {
 }
 
 
+
+
+
+
 int main(int argc, char* argv[]) {
-
-  if(argc < 2) {
-    printHelp(argc, argv);
-    return 1;
-  }
-
   Config cfg = parseArgs(argc, argv);
-
-  if(cfg.mode == "keygen") generateKeypair();
-
   if(argc < 3 && cfg.mode != "keygen") {
     printHelp(argc, argv);
-    return 1;
+    return -1;
   }
 
 
-  if(cfg.mode == "encrypt") encrypt(cfg);
-  else if(cfg.mode == "decrypt") decrypt(cfg);
+  if(cfg.mode == "keygen")       return generateKeypair();
+  else if(cfg.mode == "encrypt") return encrypt(cfg);
+  else if(cfg.mode == "decrypt") return decrypt(cfg);
+  else if(cfg.mode == "list")    return list(cfg);
+  else if(cfg.mode == "--help")  printHelp(argc, argv);
 
   return 0;
 }

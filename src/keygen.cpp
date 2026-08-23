@@ -1,13 +1,22 @@
 #include <adiatron/commands.h>
 #include <filesystem>
+#include <iostream>
 #include <sodium.h>
 #include <fstream>
 
-void generateKeypair() {
+int generateKeypair() {
+namespace fs = std::filesystem;
 
-  std::filesystem::create_directories("keys/publicKey");
-  std::filesystem::create_directories("keys/secretKey");
-
+  try {
+    fs::create_directories("keys/publicKey");
+    fs::create_directories("keys/secretKey");
+  } catch (const fs::filesystem_error& e) {
+    std::cerr << "Filesystem error: " << e.what() << "\n";
+    std::cerr << "Path: "             << e.path1() << "\n";
+    std::cerr << "Error: "            << e.code().message() << "\n";
+    
+    return -1;
+  }
   unsigned char publicKey[crypto_box_PUBLICKEYBYTES];
   unsigned char secretKey[crypto_box_SECRETKEYBYTES];
   crypto_box_keypair(publicKey, secretKey);
@@ -32,5 +41,7 @@ void generateKeypair() {
   sc.write(reinterpret_cast<const char*>(secretKey), crypto_box_SECRETKEYBYTES);
   pk.close();
   sc.close();
+
+  return 0;
 }
 
