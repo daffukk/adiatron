@@ -1,6 +1,7 @@
 #include <adiatron/commands.h>
 #include <adiatron/config.h>
 #include <adiatron/utils.h>
+#include <algorithm>
 #include <iostream>
 
 // General flags
