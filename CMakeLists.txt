@@ -17,6 +17,7 @@ add_executable(${PROJECT_NAME}
   src/terminal.cpp
   src/utils.cpp
   src/list.cpp
+  src/extract.cpp
 )
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${SODIUM_LIBRARY})

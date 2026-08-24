@@ -1,6 +1,6 @@
 #include <adiatron/terminal.h>
-#include <sys/ioctl.h>
 #include <sys/unistd.h>
+#include <sys/ioctl.h>
 
 int getTerminalWidth() {
   struct winsize w;

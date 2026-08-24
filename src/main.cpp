@@ -3,6 +3,7 @@
 #include <adiatron/utils.h>
 #include <algorithm>
 #include <iostream>
+#include <string>
 
 // General flags
 
@@ -24,13 +25,24 @@ Config parseArgs(int argc, char** argv) {
 
   if(cfg.mode == "keygen" || cfg.mode == "--help") return cfg;
   if(argc < 3) {
-    std::cerr << "File is not selected.\n";
+    std::cerr << "File is not selected. Type --help for more information.\n";
     exit(1);
   }
 
   cfg.file = argv[2];
 
-  int i=3;
+  if(cfg.mode == "extract") {
+    if(argc < 4) {
+      std::cerr << "FileID is not selected. Type --help for more information.\n";
+      exit(1);
+    }
+
+    cfg.fileId = std::stoi(argv[3]);
+  }
+  
+
+  int i;
+  cfg.mode=="extract" ? i=4 : i = 3;
 
   for(; i < argc; i++) {
     std::string arg = argv[i];
@@ -126,6 +138,7 @@ int main(int argc, char* argv[]) {
   else if(cfg.mode == "encrypt") return encrypt(cfg);
   else if(cfg.mode == "decrypt") return decrypt(cfg);
   else if(cfg.mode == "list")    return list(cfg);
+  else if(cfg.mode == "extract") return extract(cfg);
   else if(cfg.mode == "--help")  printHelp(argc, argv);
 
   return 0;

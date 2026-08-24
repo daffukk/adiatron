@@ -96,8 +96,8 @@ Type `./adiatron` to display all examples and options.
     - [ ] Select a file from an encrypted directory by filename or hash, decrypt it into RAM, and ensure it is not written to disk, swap, or cache
 
 filesystem:
+- [ ] Add --ftime and --atime flags. They will either write file's created filetime or set it to 1970 or sum like that.
 - [ ] Symlink and hardlink support
-- [ ] Partially decrypt archive(for example take 1 file)
 - [ ] Add files in encrypted archive 
 - [ ] Progress bar 
 - [ ] Encrypt file entries(keys and headers) and add encrypted "roadmap" to manage them

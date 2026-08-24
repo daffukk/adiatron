@@ -11,6 +11,7 @@ enum class EntryType : uint8_t {
   directory = 2
 };
 
+
 struct FileEntry {
   uint64_t id;
   EntryType type;
@@ -22,11 +23,24 @@ struct FileEntry {
   uint64_t dataOffset;
 };
 
+
 struct OpenedArchive {
   std::ifstream file;
   unsigned char streamKey[crypto_secretstream_xchacha20poly1305_KEYBYTES];
   uint64_t fileCount;
 };
+
+
+void findKeys(
+    std::filesystem::path& pubPath,
+    std::filesystem::path&secPath,
+    const Config& cfg
+);
+
+
+// =================
+//  DECRYPT
+// =================
 
 bool openArchive(const Config& cfg, OpenedArchive& out);
 
@@ -38,8 +52,12 @@ bool decryptMeta(
     FileEntry& outEntry
 );
 
-void findKeys(
-    std::filesystem::path& pubPath,
-    std::filesystem::path&secPath,
-    const Config& cfg
+bool decryptFileData(
+    std::ifstream& in, 
+    uint64_t dataLen, 
+    uint64_t entryId, 
+    const unsigned char* streamKey, 
+    const std::filesystem::path& outPath
 );
+
+

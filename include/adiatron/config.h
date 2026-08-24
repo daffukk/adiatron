@@ -1,8 +1,8 @@
 #pragma once
+#include <string_view>
 #include <cstdint>
 #include <string>
 #include <array>
-#include <string_view>
 
 // =================
 //  CONSTANTS
@@ -14,9 +14,10 @@ constexpr uint64_t MiB = 1ULL << 20;
 constexpr uint64_t GiB = 1ULL << 30;
 constexpr uint64_t TiB = 1ULL << 40;
 
-constexpr std::array<std::string_view, 5> modes = {
+constexpr std::array<std::string_view, 6> modes = {
   "keygen",
   "list",
+  "extract",
   "encrypt",
   "decrypt",
   "--help"
@@ -33,6 +34,7 @@ struct Config {
 
   std::string file;
   std::string filename = "";
+  uint64_t fileId;
 
   std::string keysDir = "keys";
   std::string pubDir = "";
