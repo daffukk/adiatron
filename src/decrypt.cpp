@@ -27,12 +27,19 @@ namespace fs = std::filesystem;
 
 
 
-bool decryptMeta(const uint8_t* data, size_t len, uint64_t entryId, const unsigned char * streamKey, FileEntry& outEntry) {
+bool decryptMeta(
+    const uint8_t* data, 
+    size_t len, 
+    uint64_t entryId, 
+    const unsigned char* streamKey, 
+    FileEntry& outEntry,
+    const BitFlags& bf
+) {
   if(len < crypto_secretbox_NONCEBYTES + crypto_secretbox_MACBYTES) return false;
 
-  const unsigned char* nonce = data;
+  const unsigned char* nonce      = data;
   const unsigned char* ciphertext = data + crypto_secretbox_NONCEBYTES;
-  size_t ciphertextLen = len - crypto_secretbox_NONCEBYTES;
+  size_t ciphertextLen            = len - crypto_secretbox_NONCEBYTES;
 
   unsigned char metaKey[crypto_secretbox_KEYBYTES];
   crypto_kdf_derive_from_key(metaKey, sizeof metaKey, entryId, "FILEMETA", streamKey);
@@ -43,15 +50,25 @@ bool decryptMeta(const uint8_t* data, size_t len, uint64_t entryId, const unsign
   }
 
   ByteReader r(plaintext.data(), plaintext.size());
-  outEntry.id = entryId;
-  outEntry.path = r.readString();
+  outEntry.id       = entryId;
+  outEntry.path     = r.readString();
   outEntry.dataSize = r.readU64();
+
+  //BITFLAGS
+  if(bf.Ftime) outEntry.mtime = static_cast<int64_t>(r.readU64());
+
   return true;
 }
 
 
 
-bool decryptFileData(std::ifstream& in, uint64_t dataLen, uint64_t entryId, const unsigned char* streamKey, const fs::path& outPath) {
+bool decryptFileData(
+    std::ifstream& in, 
+    uint64_t dataLen, 
+    uint64_t entryId, 
+    const unsigned char* streamKey, 
+    const fs::path& outPath
+) {
   unsigned char dataKey[crypto_secretstream_xchacha20poly1305_KEYBYTES];
   crypto_kdf_derive_from_key(dataKey, sizeof dataKey, entryId, "FILEDATA", streamKey);
 
@@ -130,6 +147,8 @@ int decrypt(const Config& cfg) {
   OpenedArchive archive;
   if(!openArchive(cfg, archive)) return -1;
 
+  BitFlags bf = readBitFlags(archive.flags);
+
 
   std::string outDirName;
   if(cfg.filename != "" && cfg.filename.size() > 0) {
@@ -164,7 +183,7 @@ int decrypt(const Config& cfg) {
     }
 
     FileEntry e;
-    if(!decryptMeta(metaBlock.data(), metaBlock.size(), i, archive.streamKey, e)) {
+    if(!decryptMeta(metaBlock.data(), metaBlock.size(), i, archive.streamKey, e, bf)) {
       std::cerr << "Failed to decrypt metadata for entry " << i << "\n";
       return -1;
     }
@@ -181,6 +200,10 @@ int decrypt(const Config& cfg) {
       std::cerr << "Failed to decrypt file: " << e.path << "\n";
       return -1;
     }
+
+    //BITFLAGS
+
+    if(bf.Ftime) fs::last_write_time(outPath, fromUnixTime(e.mtime));
 
     std::string sign;
     double precent = (double(e.id) / archive.fileCount) * 100;

@@ -1,5 +1,6 @@
 #include <adiatron/serialization.h>
 #include <adiatron/filesystem.h>
+#include <filesystem>
 #include <iostream>
 #include <ios>
 
@@ -40,7 +41,9 @@ namespace fs = std::filesystem;
   }
 }
 
-
+// =================
+//  ARCHIVE
+// =================
 
 bool openArchive(const Config& cfg, OpenedArchive &out) {
   out.file.open(cfg.file, std::ios::binary);
@@ -72,6 +75,8 @@ bool openArchive(const Config& cfg, OpenedArchive &out) {
     return false;
   }
 
+  out.file.read(reinterpret_cast<char*>(&out.flags), sizeof out.flags);
+
   out.file.read(reinterpret_cast<char*>(&out.fileCount), sizeof out.fileCount);
   if(out.file.gcount() != static_cast<std::streamsize>(sizeof out.fileCount)) {
     std::cerr << "Failed to read file count, archive may be corrupted\n";
@@ -80,10 +85,5 @@ bool openArchive(const Config& cfg, OpenedArchive &out) {
 
   return true;
 }
-
-
-
-
-
 
 

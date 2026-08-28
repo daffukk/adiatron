@@ -1,8 +1,33 @@
 #pragma once
+#include <filesystem>
 #include <cstdint>
 #include <vector>
 #include <string>
-#include "filesystem.h"
+#include "config.h"
+
+
+
+
+
+enum class EntryType : uint8_t {
+  file = 1,
+  directory = 2
+};
+
+
+struct FileEntry {
+  uint64_t id;
+  EntryType type;
+
+  std::string path;
+  int64_t mtime;
+
+  uint64_t dataSize;
+  uint64_t encryptedSize;
+  uint64_t dataOffset;
+};
+
+
 
 class ByteWriter {
 public:
@@ -61,3 +86,26 @@ public:
 void writeEntry(ByteWriter& w, const FileEntry& e);
 FileEntry readEntry(ByteReader& r);
 
+
+// =================
+// BITFLAGS
+// =================
+
+struct BitFlags {
+  bool Ftime=false;
+};
+
+namespace BitFlag {
+  constexpr uint64_t FTIME = 1ULL << 0;
+}
+
+uint64_t writeBitFlags(const Config& cfg);
+BitFlags readBitFlags(uint64_t flags);
+
+
+// =================
+//  FILETIME
+// =================
+
+int64_t toUnixTime(std::filesystem::file_time_type ftime);
+std::filesystem::file_time_type fromUnixTime(int64_t unixTime);

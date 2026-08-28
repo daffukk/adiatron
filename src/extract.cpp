@@ -20,6 +20,10 @@ namespace fs = std::filesystem;
 
   OpenedArchive archive;
   if(!openArchive(cfg, archive)) return -1;
+
+  BitFlags bf = readBitFlags(archive.flags);
+
+
   if(archive.fileCount + 1 < cfg.fileId) {
     std::cout << "Id out of range\n";
     return -1;
@@ -55,7 +59,7 @@ namespace fs = std::filesystem;
     }
 
     FileEntry e;
-    if(!decryptMeta(metaBlock.data(), metaBlock.size(), i, archive.streamKey, e)) {
+    if(!decryptMeta(metaBlock.data(), metaBlock.size(), i, archive.streamKey, e, bf)) {
       std::cerr << "Failed to decrypt metadata for entry " << i << "\n";
       return -1;
     }
@@ -78,6 +82,9 @@ namespace fs = std::filesystem;
         std::cerr << "Failed to decrypt file: " << e.path << "\n";
         return -1;
       }
+
+      if(bf.Ftime) fs::last_write_time(outPath, fromUnixTime(e.mtime));
+
 
       break;
     }

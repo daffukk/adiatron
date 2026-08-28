@@ -35,6 +35,7 @@ inline void printHelp(int argc, char* argv[]) {
     << "Flags can be used in both --filename cookies.png or --filename=cookies.png formats\n\n"
     << "\t-v, --verbose \t\t Display each file as it is encrypted or decrypted.\n"
     << "\t-o, --filename \t\t Specify an output filename.\n"
+    << "\t--ftime \t\t Preserves the original file modification time when decrypting. Available only in encryption mode.\n"
     << "\t--keydir \t\t Specify 'keys' directory location.\n"
     << "\t--pkey \t\t\t Specify public key directory location.\n"
     << "\t--skey \t\t\t Specify secret key directory location.\n";

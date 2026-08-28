@@ -20,7 +20,7 @@ the entire archive).
 
 Here is an encrypted file structure:
 ```md
-[ boxNonce ][ boxedKey ][ fileCount ]
+[ boxNonce ][ boxedKey ][ BitFlags ][ fileCount ]
 [ entry: metaLen | metaBlock | dataLen | dataBlock ]
 ```
 
@@ -82,7 +82,7 @@ Type `./adiatron` to display all examples and options.
 
 ## TODO
 - [ ] Update readme
-    - [ ] Add information about list mode
+    - [ ] Add information about list and extract mode
 - [ ] Write some comments in code
 - [ ] Optimize process!!!
 - [ ] Dividing encrypted file to volumes(e.g. encrypted.enc.0001, encrypted.enc.0002) by using --volume or --vol-size flags
@@ -96,7 +96,7 @@ Type `./adiatron` to display all examples and options.
     - [ ] Select a file from an encrypted directory by filename or hash, decrypt it into RAM, and ensure it is not written to disk, swap, or cache
 
 filesystem:
-- [ ] Add --ftime and --atime flags. They will either write file's created filetime or set it to 1970 or sum like that.
+- [X] Add --ftime and --atime flags. They will either write file's created filetime or set it to 1970 or sum like that.
 - [ ] Symlink and hardlink support
 - [ ] Add files in encrypted archive 
 - [ ] Progress bar 

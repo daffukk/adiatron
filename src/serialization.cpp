@@ -1,4 +1,5 @@
 #include <adiatron/serialization.h>
+#include <chrono>
 
 
 
@@ -20,4 +21,40 @@ FileEntry readEntry(ByteReader &r) {
   e.encryptedSize = r.readU64();
   e.dataOffset    = r.readU64();
   return e;
+}
+
+
+// =================
+// BITFLAGS
+// =================
+
+uint64_t writeBitFlags(const Config& cfg) {
+  uint64_t flags=0;
+  
+  if(cfg.recordFtime) flags |= BitFlag::FTIME;
+
+  return flags;
+}
+
+BitFlags readBitFlags(uint64_t flags) {
+  BitFlags bf;
+  if((flags & BitFlag::FTIME) != 0) bf.Ftime=true;
+
+  return bf;
+}
+
+
+// =================
+//  FILETIME
+// =================
+
+int64_t toUnixTime(std::filesystem::file_time_type ftime) {
+  auto sctp = std::chrono::clock_cast<std::chrono::system_clock>(ftime);
+  return std::chrono::duration_cast<std::chrono::seconds>(sctp.time_since_epoch()).count();
+}
+
+
+std::filesystem::file_time_type fromUnixTime(int64_t unixTime) {
+  auto sctp = std::chrono::system_clock::time_point(std::chrono::seconds(unixTime));
+  return std::chrono::clock_cast<std::filesystem::file_time_type::clock>(sctp);
 }

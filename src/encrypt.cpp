@@ -40,10 +40,17 @@ std::vector<fs::path> collectFiles(const Config& cfg) {
 
 
 
-std::vector<uint8_t> encryptMeta(const FileEntry& e, const unsigned char* streamKey) {
+std::vector<uint8_t> encryptMeta(
+    const FileEntry& e, 
+    const unsigned char* streamKey,
+    const Config& cfg
+) {
   ByteWriter w;
   w.writeString(e.path);
   w.writeU64(e.dataSize);
+
+  // BITFLAGS
+  if(cfg.recordFtime) w.writeU64(e.mtime);
 
   unsigned char metaKey[crypto_secretbox_KEYBYTES];
   crypto_kdf_derive_from_key(metaKey, sizeof metaKey, e.id, "FILEMETA", streamKey);
@@ -62,7 +69,12 @@ std::vector<uint8_t> encryptMeta(const FileEntry& e, const unsigned char* stream
 
 
 
-uint64_t encryptFileData(std::ofstream& out, const fs::path& filePath, uint64_t entryId, const unsigned char* streamKey) {
+uint64_t encryptFileData(
+    std::ofstream& out, 
+    const fs::path& filePath, 
+    uint64_t entryId, 
+    const unsigned char* streamKey
+) {
   unsigned char dataKey[crypto_secretstream_xchacha20poly1305_KEYBYTES];
   crypto_kdf_derive_from_key(dataKey, sizeof dataKey, entryId, "FILEDATA", streamKey);
 
@@ -166,19 +178,22 @@ int encrypt(const Config& cfg) {
   out.write(reinterpret_cast<char*>(boxedKey), sizeof boxedKey);
 
 
+  uint64_t flags = writeBitFlags(cfg);
+  out.write(reinterpret_cast<char*>(&flags), sizeof flags);
+
+
   std::vector<fs::path> files = collectFiles(cfg);
 
   uint64_t fileCount = files.size();
   out.write(reinterpret_cast<char*>(&fileCount), sizeof fileCount);
 
-  uint64_t nextId = 0;
-  bool isDirSource = fs::is_directory(cfg.file);
-
+  uint64_t nextId   = 0;
+  bool isDirSource  = fs::is_directory(cfg.file);
   int terminalWidth = getTerminalWidth();
 
   for(const auto& filePath : files) {
     FileEntry e;
-    e.id = nextId++;
+    e.id   = nextId++;
     e.type = EntryType::file;
 
     if(isDirSource) {
@@ -189,13 +204,17 @@ int encrypt(const Config& cfg) {
 
     e.dataSize = fs::file_size(filePath);
 
-    auto metaBlock = encryptMeta(e, streamKey);
+    // BITFLAGS
+    if(cfg.recordFtime) e.mtime = toUnixTime(fs::last_write_time(filePath));
+
+
+    auto metaBlock   = encryptMeta(e, streamKey, cfg);
     uint64_t metaLen = metaBlock.size();
     out.write(reinterpret_cast<char*>(&metaLen), sizeof metaLen);
     out.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());
 
     std::streampos lenPos = out.tellp();
-    uint64_t placeholder = 0;
+    uint64_t placeholder  = 0;
     out.write(reinterpret_cast<char*>(&placeholder), sizeof placeholder);
 
     uint64_t encLen = encryptFileData(out, filePath, e.id, streamKey);

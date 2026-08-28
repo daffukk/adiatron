@@ -41,4 +41,6 @@ struct Config {
   std::string secDir = "";
   
   bool verbose = false;
+
+  bool recordFtime = false;
 };

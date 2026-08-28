@@ -3,32 +3,11 @@
 #include <sodium.h>
 #include <cstdint>
 #include <fstream>
-#include <string>
 #include "config.h"
-
-enum class EntryType : uint8_t {
-  file = 1,
-  directory = 2
-};
+#include "serialization.h"
 
 
-struct FileEntry {
-  uint64_t id;
-  EntryType type;
 
-  std::string path;
-
-  uint64_t dataSize;
-  uint64_t encryptedSize;
-  uint64_t dataOffset;
-};
-
-
-struct OpenedArchive {
-  std::ifstream file;
-  unsigned char streamKey[crypto_secretstream_xchacha20poly1305_KEYBYTES];
-  uint64_t fileCount;
-};
 
 
 void findKeys(
@@ -42,6 +21,14 @@ void findKeys(
 //  DECRYPT
 // =================
 
+struct OpenedArchive {
+  std::ifstream file;
+  unsigned char streamKey[crypto_secretstream_xchacha20poly1305_KEYBYTES];
+  uint64_t fileCount;
+  uint64_t flags;
+};
+
+
 bool openArchive(const Config& cfg, OpenedArchive& out);
 
 bool decryptMeta(
@@ -49,7 +36,8 @@ bool decryptMeta(
     size_t len, 
     uint64_t entryId, 
     const unsigned char * streamKey, 
-    FileEntry& outEntry
+    FileEntry& outEntry,
+    const BitFlags& bf
 );
 
 bool decryptFileData(

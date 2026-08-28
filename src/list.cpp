@@ -17,6 +17,8 @@ int list(const Config& cfg) {
   OpenedArchive archive;
   if(!openArchive(cfg, archive)) return -1;
 
+  BitFlags bf = readBitFlags(archive.flags);
+
   std::cout << "Archive contains " << archive.fileCount << " file(s):\n";
 
   for(uint64_t i=0; i < archive.fileCount; i++) {
@@ -35,7 +37,7 @@ int list(const Config& cfg) {
     }
 
     FileEntry e;
-    if(!decryptMeta(metaBlock.data(), metaBlock.size(), i, archive.streamKey, e)) {
+    if(!decryptMeta(metaBlock.data(), metaBlock.size(), i, archive.streamKey, e, bf)) {
       std::cerr << "Failed to decrypt metadata for entry " << i << "\n";
       return -1;
     }

@@ -2,6 +2,7 @@
 #include <adiatron/config.h>
 #include <adiatron/utils.h>
 #include <algorithm>
+#include <cstdlib>
 #include <iostream>
 #include <string>
 
@@ -63,9 +64,6 @@ Config parseArgs(int argc, char** argv) {
       cfg.secDir = argv[++i];
     }
 
-    else if(arg == "--verbose" || arg == "-v") {
-      cfg.verbose = true;
-    }
 
     else if(arg.find("--filename=") == 0) {
       if(arg.substr(11).length() < 1) {
@@ -110,6 +108,19 @@ Config parseArgs(int argc, char** argv) {
       } else {
         cfg.secDir = arg.substr(7);
       }
+    }
+
+    else if(arg == "--ftime") {
+      if(cfg.mode == "encrypt") {
+        cfg.recordFtime = true;
+      } else {
+        std::cout << "Invalid mode, you can use --ftime only when encrypting.\n";
+        exit(1);
+      }
+    }
+
+    else if(arg == "--verbose" || arg == "-v") {
+      cfg.verbose = true;
     }
 
     else {
