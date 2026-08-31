@@ -50,7 +50,7 @@ std::vector<uint8_t> encryptMeta(
   w.writeU64(e.dataSize);
 
   // BITFLAGS
-  if(cfg.recordFtime) w.writeU64(e.mtime);
+  if(cfg.recordFtime || cfg.recordAtime) w.writeU64(e.mtime);
 
   unsigned char metaKey[crypto_secretbox_KEYBYTES];
   crypto_kdf_derive_from_key(metaKey, sizeof metaKey, e.id, "FILEMETA", streamKey);
@@ -206,6 +206,7 @@ int encrypt(const Config& cfg) {
 
     // BITFLAGS
     if(cfg.recordFtime) e.mtime = toUnixTime(fs::last_write_time(filePath));
+    if(cfg.recordAtime) e.mtime = 0;
 
 
     auto metaBlock   = encryptMeta(e, streamKey, cfg);

@@ -110,6 +110,15 @@ Config parseArgs(int argc, char** argv) {
       }
     }
 
+    else if(arg == "--atime") {
+      if(cfg.mode == "encrypt") {
+        cfg.recordAtime = true;
+      } else {
+        std::cout << "Invalid mode, you can use --atime only when encrypting.\n";
+        exit(1);
+      }
+    }
+
     else if(arg == "--ftime") {
       if(cfg.mode == "encrypt") {
         cfg.recordFtime = true;

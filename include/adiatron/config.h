@@ -43,4 +43,5 @@ struct Config {
   bool verbose = false;
 
   bool recordFtime = false;
+  bool recordAtime = false;
 };
