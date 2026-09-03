@@ -27,6 +27,7 @@ Here is an encrypted file structure:
 ## Installation
 
 ### Dependencies
+- C++ 20+
 - libsodium
 - cmake
 - make
@@ -96,6 +97,8 @@ Type `./adiatron` to display all examples and options.
     - [ ] Select a file from an encrypted directory by filename or hash, decrypt it into RAM, and ensure it is not written to disk, swap, or cache
 
 filesystem:
+- [ ] --rnames or similar flag that will randomize filenames in archive.
+- [ ] Extract one file from archive without decrypting this file.
 - [ ] Symlink and hardlink support
 - [ ] Add files in encrypted archive 
 - [ ] Progress bar 

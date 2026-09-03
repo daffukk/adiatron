@@ -166,7 +166,7 @@ int decrypt(const Config& cfg) {
 
   std::cout << "Decrypting " << archive.fileCount << " file(s)\n";
 
-  int terminalWidth = getTerminalWidth();
+  int terminalWidth = getTerminalWidth() - 40;
   for(uint64_t i=0; i < archive.fileCount; i++) {
     uint64_t metaLen = 0;
     archive.file.read(reinterpret_cast<char*>(&metaLen), sizeof metaLen);
@@ -206,17 +206,20 @@ int decrypt(const Config& cfg) {
     if(bf.Ftime) fs::last_write_time(outPath, fromUnixTime(e.mtime));
 
     std::string sign;
-    double precent = (double(e.id) / archive.fileCount) * 100;
+    double percent = (double(e.id) / archive.fileCount) * 100;
 
     std::cout << (cfg.verbose ? "" : "\r\033[K") 
-      << e.id << "/" << archive.fileCount << "(" << std::fixed << std::setprecision(2) <<precent << "%) "
+      << e.id << "/" << archive.fileCount << "(" << std::fixed << std::setprecision(2) << percent << "%) "
       << "Decrypted: " 
+      << color::cyan
       << truncateMiddle(e.path, terminalWidth)
-      << " (" << convertBytes(e.dataSize, sign) << sign << ")";
+      << color::yellow
+      << " (" << convertBytes(e.dataSize, sign) << sign << ")"
+      << color::reset;
     cfg.verbose ? std::cout << "\n" : std::cout << std::flush;
   }
 
 
-  std::cout << "\n==> Decrypted successfully\n";
+  std::cout << "\n==> Decrypted successfully.\n";
   return 0;
 }

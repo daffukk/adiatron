@@ -4,7 +4,7 @@
 
 int getTerminalWidth() {
   struct winsize w;
-  if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0) return w.ws_col - 40;
+  if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0) return w.ws_col;
   return 80;
 }
 

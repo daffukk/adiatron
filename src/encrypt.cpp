@@ -189,7 +189,7 @@ int encrypt(const Config& cfg) {
 
   uint64_t nextId   = 0;
   bool isDirSource  = fs::is_directory(cfg.file);
-  int terminalWidth = getTerminalWidth();
+  int terminalWidth = getTerminalWidth() - 40;
 
   for(const auto& filePath : files) {
     FileEntry e;
@@ -227,13 +227,16 @@ int encrypt(const Config& cfg) {
 
     
     std::string sign;
-    double precent = (double(e.id) / files.size()) * 100;
+    double percent = (double(e.id) / files.size()) * 100;
 
     std::cout << (cfg.verbose ? "" : "\r\033[K") 
-      << e.id << "/" << files.size() << "(" << std::fixed << std::setprecision(2) << precent << "%) "
+      << e.id << "/" << files.size() << "(" << std::fixed << std::setprecision(2) << percent << "%) "
       << "Encrypted: " 
+      << color::cyan
       << truncateMiddle(e.path, terminalWidth)
-      << " (" << convertBytes(e.dataSize, sign) << sign << ")";
+      << color::yellow
+      << " (" << convertBytes(e.dataSize, sign) << sign << ")"
+      << color::reset;
     cfg.verbose ? std::cout << "\n" : std::cout << std::flush;
   }
 
