@@ -13,7 +13,6 @@
 #include <adiatron/utils.h>
 #include <filesystem>
 #include <iostream>
-#include <ostream>
 #include <fstream>
 #include <cstdint>
 #include <iosfwd>
@@ -23,17 +22,17 @@
 namespace fs = std::filesystem;
 
 
-std::vector<fs::path> collectFiles(const Config& cfg) {
+std::vector<fs::path> collectFiles(const std::string& file) {
   std::vector<fs::path> files;
 
-  if(fs::is_directory(cfg.file)) {
-    for(const auto& dirEntry : fs::recursive_directory_iterator(cfg.file)) {
+  if(fs::is_directory(file)) {
+    for(const auto& dirEntry : fs::recursive_directory_iterator(file)) {
       if(!fs::is_directory(dirEntry)) {
         files.push_back(dirEntry.path());
       }
     }
   } else {
-    files.push_back(cfg.file);
+    files.push_back(file);
   }
   return files;
 }
@@ -70,7 +69,7 @@ std::vector<uint8_t> encryptMeta(
 
 
 uint64_t encryptFileData(
-    std::ofstream& out, 
+    std::ostream& out, 
     const fs::path& filePath, 
     uint64_t entryId, 
     const unsigned char* streamKey
@@ -95,10 +94,21 @@ uint64_t encryptFileData(
     if(readBytes <= 0) break;
 
     bool isLast = file.eof();
-    unsigned char tag = isLast ? crypto_secretstream_xchacha20poly1305_TAG_FINAL : crypto_secretstream_xchacha20poly1305_TAG_MESSAGE;
+    unsigned char tag = isLast ? 
+      crypto_secretstream_xchacha20poly1305_TAG_FINAL : 
+      crypto_secretstream_xchacha20poly1305_TAG_MESSAGE;
 
     unsigned long long outLen;
-    crypto_secretstream_xchacha20poly1305_push(&state, outBuffer, &outLen, fileBuffer, readBytes, nullptr, 0, tag);
+    crypto_secretstream_xchacha20poly1305_push(
+        &state,
+        outBuffer,
+        &outLen,
+        fileBuffer,
+        readBytes,
+        nullptr,
+        0,
+        tag
+    );
     out.write(reinterpret_cast<char*>(outBuffer), outLen);
     written += outLen;
   }
@@ -128,64 +138,12 @@ int encrypt(const Config& cfg) {
   }
 
 
-  // Reading keys
-
-  unsigned char publicKey[crypto_box_PUBLICKEYBYTES];
-  unsigned char secretKey[crypto_box_SECRETKEYBYTES];
-
-  fs::path pubPath, secPath;
-  findKeys(pubPath, secPath, cfg);
-
-  std::ifstream pubFile(pubPath, std::ios::binary);
-  std::ifstream secFile(secPath, std::ios::binary);
-
-  pubFile.read(reinterpret_cast<char*>(publicKey), crypto_box_PUBLICKEYBYTES);
-  secFile.read(reinterpret_cast<char*>(secretKey), crypto_box_SECRETKEYBYTES);
-
-
-  // Generating stream key 
-
-  unsigned char streamKey[crypto_secretstream_xchacha20poly1305_KEYBYTES];
-  crypto_secretstream_xchacha20poly1305_keygen(streamKey);
-
-  unsigned char boxNonce[crypto_box_NONCEBYTES];
-  randombytes_buf(boxNonce, sizeof boxNonce);
-
-  unsigned char boxedKey[crypto_box_MACBYTES + crypto_secretstream_xchacha20poly1305_KEYBYTES];
-  if(crypto_box_easy(boxedKey, streamKey, sizeof streamKey, boxNonce, publicKey, secretKey) != 0) {
-    std::cerr << "Failed to encrypt.\n";
-    return -1;
-  }
-
-
-  // Writing official data into file 
-
-  std::string filename;
-  if(cfg.filename != "" && cfg.filename.size() > 0) {
-    filename = cfg.filename;
-  } else {
-    fs::path p(cfg.file);
-
-    if(p.filename().empty()) {
-      p = p.parent_path();
-    }
-    filename = p.string() + ".enc";
-  }
-
-  std::ofstream out(filename.c_str(), std::ios::binary);
-
-  out.write(reinterpret_cast<char*>(boxNonce), sizeof boxNonce);
-  out.write(reinterpret_cast<char*>(boxedKey), sizeof boxedKey);
-
-
-  uint64_t flags = writeBitFlags(cfg);
-  out.write(reinterpret_cast<char*>(&flags), sizeof flags);
-
-
-  std::vector<fs::path> files = collectFiles(cfg);
-
+  std::vector<fs::path> files = collectFiles(cfg.file);
   uint64_t fileCount = files.size();
-  out.write(reinterpret_cast<char*>(&fileCount), sizeof fileCount);
+
+  CreatedArchive archive;
+  if(!createArchive(cfg, archive, fileCount)) return -1;
+
 
   uint64_t nextId   = 0;
   bool isDirSource  = fs::is_directory(cfg.file);
@@ -209,21 +167,21 @@ int encrypt(const Config& cfg) {
     if(cfg.recordAtime) e.mtime = 0;
 
 
-    auto metaBlock   = encryptMeta(e, streamKey, cfg);
+    auto metaBlock   = encryptMeta(e, archive.streamKey, cfg);
     uint64_t metaLen = metaBlock.size();
-    out.write(reinterpret_cast<char*>(&metaLen), sizeof metaLen);
-    out.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());
+    archive.file.write(reinterpret_cast<char*>(&metaLen), sizeof metaLen);
+    archive.file.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());
 
-    std::streampos lenPos = out.tellp();
+    std::streampos lenPos = archive.file.tellp();
     uint64_t placeholder  = 0;
-    out.write(reinterpret_cast<char*>(&placeholder), sizeof placeholder);
+    archive.file.write(reinterpret_cast<char*>(&placeholder), sizeof placeholder);
 
-    uint64_t encLen = encryptFileData(out, filePath, e.id, streamKey);
+    uint64_t encLen = encryptFileData(archive.file, filePath, e.id, archive.streamKey);
 
-    std::streampos afterPos = out.tellp();
-    out.seekp(lenPos);
-    out.write(reinterpret_cast<char*>(&encLen), sizeof encLen);
-    out.seekp(afterPos);
+    std::streampos afterPos = archive.file.tellp();
+    archive.file.seekp(lenPos);
+    archive.file.write(reinterpret_cast<char*>(&encLen), sizeof encLen);
+    archive.file.seekp(afterPos);
 
     
     std::string sign;

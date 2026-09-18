@@ -49,3 +49,32 @@ bool decryptFileData(
 );
 
 
+// =================
+//  ENCRYPT
+// =================
+
+
+
+struct CreatedArchive {
+  std::ofstream file;
+  unsigned char streamKey[crypto_secretstream_xchacha20poly1305_KEYBYTES];
+  uint64_t flags;
+};
+
+
+bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount);
+
+std::vector<std::filesystem::path> collectFiles(const std::string& file);
+
+std::vector<uint8_t> encryptMeta(
+    const FileEntry& e, 
+    const unsigned char* streamKey,
+    const Config& cfg
+);
+
+uint64_t encryptFileData(
+    std::ostream& out, 
+    const std::filesystem::path& filePath, 
+    uint64_t entryId, 
+    const unsigned char* streamKey
+);

@@ -40,10 +40,23 @@ Config parseArgs(int argc, char** argv) {
 
     cfg.fileId = std::stoi(argv[3]);
   }
+
+  if(cfg.mode == "add") {
+    if(argc < 4) {
+      std::cerr << "Target is not selected. Type --help for more information.\n";
+      exit(1);
+    }
+
+    cfg.target = argv[3];
+  }
   
 
   int i;
-  cfg.mode=="extract" ? i=4 : i = 3;
+  if(cfg.mode == "extract" || cfg.mode == "add")  {
+    i = 4;
+  } else {
+    i = 3;
+  }
 
   for(; i < argc; i++) {
     std::string arg = argv[i];
@@ -159,6 +172,7 @@ int main(int argc, char* argv[]) {
   else if(cfg.mode == "decrypt") return decrypt(cfg);
   else if(cfg.mode == "list")    return list(cfg);
   else if(cfg.mode == "extract") return extract(cfg);
+  else if(cfg.mode == "add")     return add(cfg);
   else if(cfg.mode == "--help")  printHelp(argc, argv);
 
   return 0;

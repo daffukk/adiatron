@@ -82,6 +82,7 @@ Type `./adiatron` to display all examples and options.
 
 
 ## TODO
+- [ ] Make pretty CLI interface
 - [ ] Update readme
     - [ ] Add information about list and extract mode
 - [ ] Write some comments in code
@@ -95,6 +96,7 @@ Type `./adiatron` to display all examples and options.
 - [ ] Hyper-secure mode
     - [ ] Partially decrypt a directory to list filenames
     - [ ] Select a file from an encrypted directory by filename or hash, decrypt it into RAM, and ensure it is not written to disk, swap, or cache
+
 
 filesystem:
 - [ ] --rnames or similar flag that will randomize filenames in archive.
