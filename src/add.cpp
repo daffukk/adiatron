@@ -10,33 +10,6 @@
 
 
 
-// I USED FUNCTION OVERLOADING. I KNOW THAT IT MIGHT BE THE UGLIEST THING YOU HAVE SEEN BUT I WILL TRY TO FIX IT LATER(MAKE IT BEAUTIFUL)
-std::vector<uint8_t> encryptMeta(
-    const FileEntry& e, 
-    const unsigned char* streamKey,
-    BitFlags bf
-) {
-  ByteWriter w;
-  w.writeString(e.path);
-  w.writeU64(e.dataSize);
-
-  // BITFLAGS
-  if(bf.Ftime) w.writeU64(e.mtime);
-
-  unsigned char metaKey[crypto_secretbox_KEYBYTES];
-  crypto_kdf_derive_from_key(metaKey, sizeof metaKey, e.id, "FILEMETA", streamKey);
-
-  unsigned char nonce[crypto_secretbox_NONCEBYTES];
-  randombytes_buf(nonce, sizeof nonce);
-
-  std::vector<uint8_t> ciphertext(w.buf.size() + crypto_secretbox_MACBYTES);
-  crypto_secretbox_easy(ciphertext.data(), w.buf.data(), w.buf.size(), nonce, metaKey);
-
-  std::vector<uint8_t> result;
-  result.insert(result.end(), nonce, nonce + sizeof nonce);
-  result.insert(result.end(), ciphertext.begin(), ciphertext.end());
-  return result;
-}
 
 
 
@@ -47,12 +20,12 @@ bool updateFileCount(const std::string& file, uint64_t newFileCount) {
     return false;
   }
 
-  std::streamoff fileCountOffset =
+  constexpr std::streamoff FILE_COUNT_OFFSET =
     crypto_secretbox_NONCEBYTES +
     (crypto_secretbox_MACBYTES + crypto_secretstream_xchacha20poly1305_KEYBYTES) +
     sizeof(uint64_t);
 
-  f.seekp(fileCountOffset);
+  f.seekp(FILE_COUNT_OFFSET);
   f.write(reinterpret_cast<char*>(&newFileCount), sizeof newFileCount);
 
   return true;
@@ -104,10 +77,11 @@ namespace fs=std::filesystem;
 
     e.dataSize = fs::file_size(filePath);
 
-    if(bf.Ftime) e.mtime = toUnixTime(fs::last_write_time(filePath));
+    if(bf.Ftime) e.mtime        = toUnixTime(fs::last_write_time(filePath));
+    if(cfg.recordAtime) e.mtime = 0;
 
 
-    auto metaBlock   = encryptMeta(e, archive.streamKey, cfg);
+    auto metaBlock   = encryptMeta(e, archive.streamKey, bf);
     uint64_t metaLen = metaBlock.size();
     appendFile.write(reinterpret_cast<char*>(&metaLen), sizeof metaLen);
     appendFile.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());

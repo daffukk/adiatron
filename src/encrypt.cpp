@@ -42,14 +42,14 @@ std::vector<fs::path> collectFiles(const std::string& file) {
 std::vector<uint8_t> encryptMeta(
     const FileEntry& e, 
     const unsigned char* streamKey,
-    const Config& cfg
+    const BitFlags& bf
 ) {
   ByteWriter w;
   w.writeString(e.path);
   w.writeU64(e.dataSize);
 
   // BITFLAGS
-  if(cfg.recordFtime || cfg.recordAtime) w.writeU64(e.mtime);
+  if(bf.Ftime) w.writeU64(e.mtime);
 
   unsigned char metaKey[crypto_secretbox_KEYBYTES];
   crypto_kdf_derive_from_key(metaKey, sizeof metaKey, e.id, "FILEMETA", streamKey);
@@ -122,7 +122,7 @@ uint64_t encryptFileData(
 
 int encrypt(const Config& cfg) {
 
-  if(cfg.pubDir.length() > 0 && cfg.secDir.length() > 0) {
+  if(!cfg.pubDir.empty() && !cfg.secDir.empty()) {
     std::cout << "Keys found.\n";
   } else {
     if(!fs::is_directory(cfg.keysDir)) {
@@ -147,7 +147,7 @@ int encrypt(const Config& cfg) {
 
   uint64_t nextId   = 0;
   bool isDirSource  = fs::is_directory(cfg.file);
-  int terminalWidth = getTerminalWidth() - 40;
+  int terminalWidth = getTerminalWidth() - 45;
 
   for(const auto& filePath : files) {
     FileEntry e;
@@ -163,11 +163,14 @@ int encrypt(const Config& cfg) {
     e.dataSize = fs::file_size(filePath);
 
     // BITFLAGS
+    auto bf = readBitFlags(archive.flags);
+
     if(cfg.recordFtime) e.mtime = toUnixTime(fs::last_write_time(filePath));
     if(cfg.recordAtime) e.mtime = 0;
 
 
-    auto metaBlock   = encryptMeta(e, archive.streamKey, cfg);
+
+    auto metaBlock   = encryptMeta(e, archive.streamKey, bf);
     uint64_t metaLen = metaBlock.size();
     archive.file.write(reinterpret_cast<char*>(&metaLen), sizeof metaLen);
     archive.file.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());

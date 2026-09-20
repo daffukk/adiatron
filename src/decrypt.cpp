@@ -25,8 +25,6 @@ namespace fs = std::filesystem;
 
 
 
-
-
 bool decryptMeta(
     const uint8_t* data, 
     size_t len, 
@@ -130,14 +128,6 @@ bool decryptFileData(
 
 
 int decrypt(const Config& cfg) {
-
-  if(cfg.pubDir.length() < 1 && cfg.secDir.length() < 1) {
-    if(!fs::is_directory(cfg.keysDir)) {
-      std::cout << "Generating keys...\n";
-      generateKeypair();
-    }
-  }
-
   if(sodium_init() != 0) {
     std::cerr << "Error sodium\n";
   }

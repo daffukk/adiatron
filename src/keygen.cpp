@@ -6,6 +6,8 @@
 
 int generateKeypair() {
 namespace fs = std::filesystem;
+  
+  std::cout << "\nGenerating new keys...\n";
 
   try {
     fs::create_directories("keys/publicKey");

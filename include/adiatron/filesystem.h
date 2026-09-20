@@ -10,7 +10,7 @@
 
 
 
-void findKeys(
+bool findKeys(
     std::filesystem::path& pubPath,
     std::filesystem::path&secPath,
     const Config& cfg
@@ -69,7 +69,7 @@ std::vector<std::filesystem::path> collectFiles(const std::string& file);
 std::vector<uint8_t> encryptMeta(
     const FileEntry& e, 
     const unsigned char* streamKey,
-    const Config& cfg
+    const BitFlags& bf
 );
 
 uint64_t encryptFileData(

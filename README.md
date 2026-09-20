@@ -82,7 +82,7 @@ Type `./adiatron` to display all examples and options.
 
 
 ## TODO
-- [ ] Make pretty CLI interface
+- [X] Make pretty CLI interface
 - [ ] Update readme
     - [ ] Add information about list and extract mode
 - [ ] Write some comments in code
@@ -102,7 +102,6 @@ filesystem:
 - [ ] --rnames or similar flag that will randomize filenames in archive.
 - [ ] Extract one file from archive without decrypting this file.
 - [ ] Symlink and hardlink support
-- [ ] Add files in encrypted archive 
 - [ ] Progress bar 
 - [ ] Encrypt file entries(keys and headers) and add encrypted "roadmap" to manage them
 - [ ] CLI autocompletion

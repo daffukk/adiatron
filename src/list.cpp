@@ -1,5 +1,6 @@
 #include <adiatron/serialization.h>
 #include <adiatron/filesystem.h>
+#include <adiatron/terminal.h>
 #include <adiatron/commands.h>
 #include <adiatron/config.h>
 #include <adiatron/utils.h>
@@ -18,6 +19,7 @@ int list(const Config& cfg) {
   if(!openArchive(cfg, archive)) return -1;
 
   BitFlags bf = readBitFlags(archive.flags);
+  int terminalWidth = getTerminalWidth() - 20;
 
   std::cout << "Archive contains " << archive.fileCount << " file(s):\n";
 
@@ -43,7 +45,14 @@ int list(const Config& cfg) {
     }
 
     std::string sign;
-    std::cout << "  " << e.id << "  " << e.path << " (" << convertBytes(e.dataSize, sign) << sign << ")\n";
+    std::cout
+      << std::fixed << std::setprecision(2)
+      << std::setw(4) << e.id << " | "
+      << color::cyan
+      << truncateMiddle(e.path, terminalWidth) 
+      << color::yellow
+      << " (" << convertBytes(e.dataSize, sign) << sign << ")\n"
+      << color::reset;
 
     uint64_t dataLen = 0;
     archive.file.read(reinterpret_cast<char*>(&dataLen), sizeof dataLen);
