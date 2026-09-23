@@ -82,6 +82,12 @@ Type `./adiatron` to display all examples and options.
 
 
 ## TODO
+- [ ] sodium_memzero after every secret key interaction.
+- [ ] Notes about keys and their sizes and structures in README.
+- [ ] --nokeyformat flag(0x00, 0x01), to be able to use any bytes as secret key.
+- [ ] crypto_pwhash_OPSLIMIT, crypto_pwhash_MEMLIMIT and crypto_pwhash_ALG flags for lower/higher encryption power(for example --maxmem).
+- [ ] Remove shitty structure of keys(keys/publicKey/pkey123.pub), make just keys/pkey123.pub.
+- [ ] Update main.cpp code, those if else if else if else. And it would be nice to update arguments parsing logic.
 - [X] Make pretty CLI interface
 - [ ] Update readme
     - [ ] Add information about list and extract mode
@@ -91,7 +97,6 @@ Type `./adiatron` to display all examples and options.
 - [ ] .config/adiatron default configuration directory
 - [ ] Keys selection(TUI)
 - [ ] Select usb drive for keys
-- [ ] Keys passphrase support
 - [ ] --version flag
 - [ ] Hyper-secure mode
     - [ ] Partially decrypt a directory to list filenames

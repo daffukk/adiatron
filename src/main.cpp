@@ -24,13 +24,14 @@ Config parseArgs(int argc, char** argv) {
   }
 
 
-  if(cfg.mode == "keygen" || cfg.mode == "--help") return cfg;
-  if(argc < 3) {
+  if(cfg.mode == "--help") return cfg;
+
+  if(cfg.mode != "keygen" && argc < 3) {
     std::cerr << "File is not selected. Type --help for more information.\n";
     exit(1);
   }
 
-  cfg.file = argv[2];
+  if(cfg.mode != "keygen") cfg.file = argv[2];
 
   if(cfg.mode == "extract") {
     if(argc < 4) {
@@ -54,6 +55,8 @@ Config parseArgs(int argc, char** argv) {
   int i;
   if(cfg.mode == "extract" || cfg.mode == "add")  {
     i = 4;
+  } else if(cfg.mode == "keygen") {
+    i = 2;
   } else {
     i = 3;
   }
@@ -145,6 +148,10 @@ Config parseArgs(int argc, char** argv) {
       cfg.verbose = true;
     }
 
+    else if(arg == "--passphrase") {
+      cfg.usePassphrase = true;
+    }
+
     else {
       std::cout << "Unknown argument: " << arg << "\n";
       exit(1);
@@ -167,7 +174,7 @@ int main(int argc, char* argv[]) {
   }
 
 
-  if(cfg.mode == "keygen")       return generateKeypair();
+  if(cfg.mode == "keygen")       return keygen(cfg);
   else if(cfg.mode == "encrypt") return encrypt(cfg);
   else if(cfg.mode == "decrypt") return decrypt(cfg);
   else if(cfg.mode == "list")    return list(cfg);

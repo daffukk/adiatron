@@ -1,6 +1,8 @@
 #include <adiatron/terminal.h>
 #include <sys/unistd.h>
 #include <sys/ioctl.h>
+#include <termios.h>
+#include <iostream>
 
 int getTerminalWidth() {
   struct winsize w;
@@ -19,3 +21,20 @@ std::string truncateMiddle(const std::string& path, size_t maxLen) {
   return path.substr(0, headLen) + "..." + path.substr(path.size() - tailLen);
 }
 
+
+
+std::string readPassphraseHidden(const std::string& prompt) {
+  std::cout << prompt;
+  termios oldt{};
+  tcgetattr(STDIN_FILENO, &oldt);
+  termios newt = oldt;
+  newt.c_lflag &= ~ECHO;
+  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+  std::string passphrase;
+  std::getline(std::cin, passphrase);
+
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+  std::cout << "\n";
+  return passphrase;
+}

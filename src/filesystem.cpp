@@ -1,17 +1,23 @@
 #include <adiatron/serialization.h>
 #include <adiatron/filesystem.h>
 #include <adiatron/commands.h>
-#include <cstdint>
+#include <adiatron/terminal.h>
 #include <filesystem>
 #include <iostream>
 #include <ios>
 #include <sodium/crypto_box.h>
+#include <sodium/crypto_secretbox.h>
 #include <sodium/randombytes.h>
+#include <sodium/utils.h>
 #include <string>
 
 
 
 
+
+// =================
+//  KEYS
+// =================
 
 bool findKeys(
     std::filesystem::path& pubPath, 
@@ -56,6 +62,65 @@ namespace fs = std::filesystem;
   return true;
 }
 
+bool loadSecretKey(const std::filesystem::path& secPath, unsigned char* secretKeyOut) {
+  std::ifstream secFile(secPath, std::ios::binary);
+  if(!secFile) {
+    std::cerr << "Cannot open secret key file.\n";
+    return false;
+  }
+
+  unsigned char format;
+  secFile.read(reinterpret_cast<char*>(&format), 1);
+  if(secFile.gcount() != 1) {
+    std::cerr << "Secret key file is empty or corrupted.\n";
+    return false;
+  }
+
+  if(format == 0x00) {
+    secFile.read(reinterpret_cast<char*>(secretKeyOut), crypto_box_SECRETKEYBYTES);
+    return true;
+  } 
+
+  if(format == 0x01) { 
+    unsigned char salt[crypto_pwhash_SALTBYTES];
+    unsigned char nonce[crypto_secretbox_NONCEBYTES];
+    unsigned char encryptedSecretKey[crypto_box_SECRETKEYBYTES + crypto_secretbox_MACBYTES];
+
+    secFile.read(reinterpret_cast<char*>(salt), sizeof salt);
+    secFile.read(reinterpret_cast<char*>(nonce), sizeof nonce);
+    secFile.read(reinterpret_cast<char*>(encryptedSecretKey), sizeof encryptedSecretKey);
+ 
+    std::string passphrase = readPassphraseHidden("Enter passphrase for secret key: ");
+
+    unsigned char derivedKey[crypto_secretbox_KEYBYTES];
+    if(crypto_pwhash(derivedKey, sizeof derivedKey,
+          passphrase.c_str(), passphrase.size(), salt, 
+          crypto_pwhash_OPSLIMIT_INTERACTIVE,
+          crypto_pwhash_MEMLIMIT_INTERACTIVE,
+          crypto_pwhash_ALG_DEFAULT) != 0) {
+      std::cerr << "Failed to derive key from passphrase (out of memory?).\n";
+      sodium_memzero(passphrase.data(), passphrase.size());
+      return false;
+    }
+    sodium_memzero(passphrase.data(), passphrase.size());
+
+
+    bool ok = crypto_secretbox_open_easy(secretKeyOut, encryptedSecretKey,
+        sizeof encryptedSecretKey, nonce, derivedKey) == 0;
+
+    sodium_memzero(derivedKey, sizeof derivedKey);
+
+    if(!ok) {
+      std::cerr << "Wrong passphrase or corrupted key file.\n";
+      return false;
+    }
+    return true;
+  }
+
+  std::cerr << "Unknown secret key format.\n";
+  return false;
+}
+
 // =================
 //  ARCHIVE
 // =================
@@ -79,8 +144,7 @@ bool openArchive(const Config& cfg, OpenedArchive &out) {
   std::ifstream pubFile(pubPath, std::ios::binary);
   pubFile.read(reinterpret_cast<char*>(publicKey), crypto_box_PUBLICKEYBYTES);
 
-  std::ifstream secFile(secPath, std::ios::binary);
-  secFile.read(reinterpret_cast<char*>(secretKey), crypto_box_SECRETKEYBYTES);
+  if(!loadSecretKey(secPath, secretKey)) return false;
 
   unsigned char boxNonce[crypto_box_NONCEBYTES];
   out.file.read(reinterpret_cast<char*>(boxNonce), sizeof boxNonce);
@@ -136,7 +200,7 @@ bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
     std::getline(std::cin, answer);
 
     if(answer.empty() || answer == "y" || answer == "Y") {
-      generateKeypair();
+      keygen(cfg);
       findKeys(pubPath, secPath, cfg);
     } else if(answer == "n" || answer == "N") {
       return false;
@@ -148,8 +212,7 @@ bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
   std::ifstream pubFile(pubPath, std::ios::binary);
   pubFile.read(reinterpret_cast<char*>(publicKey), crypto_box_PUBLICKEYBYTES);
 
-  std::ifstream secFile(secPath, std::ios::binary);
-  secFile.read(reinterpret_cast<char*>(secretKey), crypto_box_SECRETKEYBYTES);
+  if(!loadSecretKey(secPath, secretKey)) return false;
 
 
   crypto_secretstream_xchacha20poly1305_keygen(out.streamKey);

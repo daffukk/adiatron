@@ -127,7 +127,7 @@ int encrypt(const Config& cfg) {
   } else {
     if(!fs::is_directory(cfg.keysDir)) {
       std::cout << "Generating keys...\n";
-      generateKeypair();
+      keygen(cfg);
     }
   }
 
