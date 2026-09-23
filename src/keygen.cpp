@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <sodium/crypto_secretbox.h>
 #include <sodium/crypto_pwhash.h>
 #include <sodium/randombytes.h>
@@ -14,7 +15,7 @@
 
 
 
-int generateKeypair() {
+int generateKeypair(bool noFormat) {
 namespace fs = std::filesystem;
   
   std::cout << "\nGenerating new keys...\n";
@@ -43,10 +44,18 @@ namespace fs = std::filesystem;
 
 
   std::ofstream sc(("keys/secretKey/" + shortHex).c_str(), std::ios::binary);
-  unsigned char format = 0x00;
-  sc.write(reinterpret_cast<const char*>(&format), 1);
+  
+  if(!noFormat) {
+    unsigned char format = 0x00;
+    sc.write(reinterpret_cast<const char*>(&format), 1);
+  } else {
+    std::cout << "--nokeyformat flag has been used. Creating keys without format.\n";
+  }
+  
   sc.write(reinterpret_cast<const char*>(secretKey), sizeof secretKey);
   sc.close();
+
+  sodium_memzero(secretKey, sizeof secretKey);
 
   std::ofstream pk(("keys/publicKey/" + shortHex + ".pub").c_str(), std::ios::binary);
   pk.write(reinterpret_cast<const char*>(publicKey), sizeof publicKey);
@@ -128,7 +137,12 @@ namespace fs = std::filesystem;
 
 int keygen(const Config& cfg) {
   if(!cfg.usePassphrase) {
-    return generateKeypair();
+    return generateKeypair(cfg.noKeyFormat);
+  }
+
+  if(cfg.noKeyFormat) {
+    std::cerr << "--nokeyformat cannot be used with encrypted keys.\n";
+    return -1;
   }
 
   std::string pass1 = readPassphraseHidden("Enter passphrase: ");

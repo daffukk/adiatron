@@ -37,11 +37,12 @@ inline void printHelp(int argc, char* argv[]) {
     << "\n"
     << "Options:\n"
     << "Flags can be used in both --filename cookies.png or --filename=cookies.png formats\n\n"
-    << "\t--passphrase \t\t Encrypt secret key with passphrase for extra security. Decryption will prompt for passphrase when key is needed.\n"
+    << "\t-p, --passphrase \t Encrypt secret key with passphrase for extra security. Decryption will prompt for passphrase when key is needed.\n"
     << "\t-v, --verbose \t\t Display each file as it is encrypted or decrypted.\n"
     << "\t-o, --filename \t\t Specify an output filename.\n"
     << "\t--ftime \t\t Preserves the original file modification time when decrypting. Available only in encryption mode.\n"
     << "\t--atime \t\t Does the same thing as --ftime, but filetime is 1970-01-01 00:00:00 UTC for every file. Available only in encryption mode.\n"
+    << "\t--nokeyformat \t\t Do not check or add format of the secret key. With this flag any bytes could be secret key. Note that this flag does not work with encrypted keys.\n"
     << "\t--keydir \t\t Specify 'keys' directory location.\n"
     << "\t--pkey \t\t\t Specify public key directory location.\n"
     << "\t--skey \t\t\t Specify secret key directory location.\n";

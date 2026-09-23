@@ -148,8 +148,12 @@ Config parseArgs(int argc, char** argv) {
       cfg.verbose = true;
     }
 
-    else if(arg == "--passphrase") {
+    else if(arg == "--passphrase" || arg == "-p") {
       cfg.usePassphrase = true;
+    }
+
+    else if(arg == "--nokeyformat") {
+      cfg.noKeyFormat = true;
     }
 
     else {

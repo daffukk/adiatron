@@ -62,11 +62,16 @@ namespace fs = std::filesystem;
   return true;
 }
 
-bool loadSecretKey(const std::filesystem::path& secPath, unsigned char* secretKeyOut) {
+bool loadSecretKey(const std::filesystem::path& secPath, unsigned char* secretKeyOut, const bool noFormat) {
   std::ifstream secFile(secPath, std::ios::binary);
   if(!secFile) {
     std::cerr << "Cannot open secret key file.\n";
     return false;
+  }
+
+  if(noFormat) {
+    secFile.read(reinterpret_cast<char*>(secretKeyOut), crypto_box_SECRETKEYBYTES);
+    return true;
   }
 
   unsigned char format;
@@ -144,7 +149,7 @@ bool openArchive(const Config& cfg, OpenedArchive &out) {
   std::ifstream pubFile(pubPath, std::ios::binary);
   pubFile.read(reinterpret_cast<char*>(publicKey), crypto_box_PUBLICKEYBYTES);
 
-  if(!loadSecretKey(secPath, secretKey)) return false;
+  if(!loadSecretKey(secPath, secretKey, cfg.noKeyFormat)) return false;
 
   unsigned char boxNonce[crypto_box_NONCEBYTES];
   out.file.read(reinterpret_cast<char*>(boxNonce), sizeof boxNonce);
@@ -154,8 +159,11 @@ bool openArchive(const Config& cfg, OpenedArchive &out) {
 
   if(crypto_box_open_easy(out.streamKey, boxedKey, sizeof boxedKey, boxNonce, publicKey, secretKey) != 0) {
     std::cerr << "Failed to decrypt streamKey. Maybe you used wrong keys?\n";
+    sodium_memzero(secretKey, sizeof secretKey);
     return false;
   }
+
+  sodium_memzero(secretKey, sizeof secretKey);
 
   out.file.read(reinterpret_cast<char*>(&out.flags), sizeof out.flags);
 
@@ -212,7 +220,7 @@ bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
   std::ifstream pubFile(pubPath, std::ios::binary);
   pubFile.read(reinterpret_cast<char*>(publicKey), crypto_box_PUBLICKEYBYTES);
 
-  if(!loadSecretKey(secPath, secretKey)) return false;
+  if(!loadSecretKey(secPath, secretKey, cfg.noKeyFormat)) return false;
 
 
   crypto_secretstream_xchacha20poly1305_keygen(out.streamKey);
@@ -225,8 +233,12 @@ bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
   unsigned char boxedKey[crypto_box_MACBYTES + crypto_secretstream_xchacha20poly1305_KEYBYTES];
   if(crypto_box_easy(boxedKey, out.streamKey, sizeof out.streamKey, boxNonce, publicKey, secretKey) != 0) {
     std::cerr << "Failed to encrypt.\n";
+    sodium_memzero(secretKey, sizeof secretKey);
     return false;
   }
+
+  sodium_memzero(secretKey, sizeof secretKey);
+
   out.file.write(reinterpret_cast<char*>(boxedKey), sizeof boxedKey);
 
 

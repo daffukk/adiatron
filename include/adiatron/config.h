@@ -33,6 +33,7 @@ constexpr std::array<std::string_view, 7> modes = {
 struct Config {
   std::string mode;
   bool usePassphrase = false;
+  bool noKeyFormat = false;
 
   std::string file;
   std::string filename = "";
