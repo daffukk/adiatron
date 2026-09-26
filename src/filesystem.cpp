@@ -189,6 +189,21 @@ bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
     filename = p.string() + ".enc";
   }
 
+  if(std::filesystem::exists(filename)) {
+    std::cout << filename << " already exist. Opening will overwrite it. Continue? [Y/n]: ";
+    std::string answer;
+    std::getline(std::cin, answer);
+
+    if(answer.empty() || answer == "y" || answer == "Y") {}
+    else if(answer == "n" || answer == "N") {
+      std::cout << "Exit.\n";
+      return false;
+    } else {
+      std::cout << "Exit.\n";
+      return false;
+    }
+  }
+
   out.file.open(filename, std::ios::binary);
   if(!out.file) {
     std::cerr << "Cannot create output file.\n";

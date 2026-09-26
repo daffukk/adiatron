@@ -83,7 +83,6 @@ Type `./adiatron` to display all examples and options.
 
 ## TODO
 - [ ] Vim style list mode
-- [ ] Warning about encrypting file that already exists.
 - [ ] crypto_pwhash_OPSLIMIT, crypto_pwhash_MEMLIMIT and crypto_pwhash_ALG flags for lower/higher encryption power(for example --maxmem).
 - [ ] Update main.cpp code, those if else if else if else. And it would be nice to update arguments parsing logic.
 - [X] Make pretty CLI interface
