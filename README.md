@@ -82,23 +82,23 @@ Type `./adiatron` to display all examples and options.
 
 
 ## TODO
+- [ ] Vim style list mode
+- [ ] crypto_pwhash_OPSLIMIT, crypto_pwhash_MEMLIMIT and crypto_pwhash_ALG flags for lower/higher encryption power(for example --maxmem).
+- [ ] Update main.cpp code, those if else if else if else. And it would be nice to update arguments parsing logic.
 - [X] Make pretty CLI interface
 - [ ] Update readme
-    - [ ] Add information about list and extract mode
+    - [ ] Add information about list, extract and add modes
+    - [ ] Notes about keys and their sizes and structures
 - [ ] Write some comments in code
 - [ ] Optimize process!!!
 - [ ] Dividing encrypted file to volumes(e.g. encrypted.enc.0001, encrypted.enc.0002) by using --volume or --vol-size flags
 - [ ] .config/adiatron default configuration directory
 - [ ] Keys selection(TUI)
 - [ ] Select usb drive for keys
-- [ ] Keys passphrase support
 - [ ] --version flag
 - [ ] Hyper-secure mode
     - [ ] Partially decrypt a directory to list filenames
     - [ ] Select a file from an encrypted directory by filename or hash, decrypt it into RAM, and ensure it is not written to disk, swap, or cache
-
-
-filesystem:
 - [ ] --rnames or similar flag that will randomize filenames in archive.
 - [ ] Extract one file from archive without decrypting this file.
 - [ ] Symlink and hardlink support

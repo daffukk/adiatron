@@ -24,13 +24,14 @@ Config parseArgs(int argc, char** argv) {
   }
 
 
-  if(cfg.mode == "keygen" || cfg.mode == "--help") return cfg;
-  if(argc < 3) {
+  if(cfg.mode == "--help") return cfg;
+
+  if(cfg.mode != "keygen" && argc < 3) {
     std::cerr << "File is not selected. Type --help for more information.\n";
     exit(1);
   }
 
-  cfg.file = argv[2];
+  if(cfg.mode != "keygen") cfg.file = argv[2];
 
   if(cfg.mode == "extract") {
     if(argc < 4) {
@@ -54,6 +55,8 @@ Config parseArgs(int argc, char** argv) {
   int i;
   if(cfg.mode == "extract" || cfg.mode == "add")  {
     i = 4;
+  } else if(cfg.mode == "keygen") {
+    i = 2;
   } else {
     i = 3;
   }
@@ -70,11 +73,11 @@ Config parseArgs(int argc, char** argv) {
     }
 
     else if(arg == "--pkey" && i+1 < argc) {
-      cfg.pubDir = argv[++i];
+      cfg.pubPath = argv[++i];
     }
 
     else if(arg == "--skey" && i+1 < argc) {
-      cfg.secDir = argv[++i];
+      cfg.secPath = argv[++i];
     }
 
 
@@ -107,19 +110,19 @@ Config parseArgs(int argc, char** argv) {
 
     else if(arg.find("--pkey=") == 0) {
       if(arg.substr(7).length() < 1) {
-        std::cerr << "Invalid public key.\n";
+        std::cerr << "Specify the path to the public key.\n";
         exit(1);
       } else {
-        cfg.pubDir = arg.substr(7);
+        cfg.pubPath = arg.substr(7);
       }
     }
 
     else if(arg.find("--skey=") == 0) {
       if(arg.substr(7).length() < 1) {
-        std::cerr << "Invalid secret key.\n";
+        std::cerr << "Specify the path to the secret key.\n";
         exit(1);
       } else {
-        cfg.secDir = arg.substr(7);
+        cfg.secPath = arg.substr(7);
       }
     }
 
@@ -145,6 +148,14 @@ Config parseArgs(int argc, char** argv) {
       cfg.verbose = true;
     }
 
+    else if(arg == "--passphrase" || arg == "-p") {
+      cfg.usePassphrase = true;
+    }
+
+    else if(arg == "--nokeyformat") {
+      cfg.noKeyFormat = true;
+    }
+
     else {
       std::cout << "Unknown argument: " << arg << "\n";
       exit(1);
@@ -167,7 +178,7 @@ int main(int argc, char* argv[]) {
   }
 
 
-  if(cfg.mode == "keygen")       return generateKeypair();
+  if(cfg.mode == "keygen")       return keygen(cfg);
   else if(cfg.mode == "encrypt") return encrypt(cfg);
   else if(cfg.mode == "decrypt") return decrypt(cfg);
   else if(cfg.mode == "list")    return list(cfg);

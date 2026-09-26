@@ -17,3 +17,4 @@ namespace color {
 
 int getTerminalWidth();
 std::string truncateMiddle(const std::string& path, size_t maxLen);
+std::string readPassphraseHidden(const std::string& prompt);
