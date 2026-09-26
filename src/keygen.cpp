@@ -1,4 +1,3 @@
-#include <cstdlib>
 #include <sodium/crypto_secretbox.h>
 #include <sodium/crypto_pwhash.h>
 #include <sodium/randombytes.h>
@@ -21,8 +20,7 @@ namespace fs = std::filesystem;
   std::cout << "\nGenerating new keys...\n";
 
   try {
-    fs::create_directories("keys/publicKey");
-    fs::create_directories("keys/secretKey");
+    fs::create_directories("keys");
   } catch (const fs::filesystem_error& e) {
     std::cerr << "Filesystem error: " << e.what() << "\n";
     std::cerr << "Path: "             << e.path1() << "\n";
@@ -43,7 +41,7 @@ namespace fs = std::filesystem;
   std::string shortHex = std::string(hex).substr(0, 6);
 
 
-  std::ofstream sc(("keys/secretKey/" + shortHex).c_str(), std::ios::binary);
+  std::ofstream sc(("keys/" + shortHex).c_str(), std::ios::binary);
   
   if(!noFormat) {
     unsigned char format = 0x00;
@@ -57,7 +55,7 @@ namespace fs = std::filesystem;
 
   sodium_memzero(secretKey, sizeof secretKey);
 
-  std::ofstream pk(("keys/publicKey/" + shortHex + ".pub").c_str(), std::ios::binary);
+  std::ofstream pk(("keys/" + shortHex + ".pub").c_str(), std::ios::binary);
   pk.write(reinterpret_cast<const char*>(publicKey), sizeof publicKey);
   pk.close();
 
@@ -70,8 +68,7 @@ int generateEncryptedKeypair(const char* passphrase) {
 namespace fs = std::filesystem;
   
   try {
-    fs::create_directories("keys/publicKey");
-    fs::create_directories("keys/secretKey");
+    fs::create_directories("keys");
   } catch (const fs::filesystem_error& e) {
     std::cerr << "Filesystem error: " << e.what() << "\n";
     std::cerr << "Path: "             << e.path1() << "\n";
@@ -117,7 +114,7 @@ namespace fs = std::filesystem;
   sodium_memzero(secretKey, sizeof secretKey);
 
 
-  std::ofstream sc(("keys/secretKey/" + shortHex).c_str(), std::ios::binary);
+  std::ofstream sc(("keys/" + shortHex).c_str(), std::ios::binary);
   unsigned char format = 0x01;
   sc.write(reinterpret_cast<const char*>(&format), 1); 
   sc.write(reinterpret_cast<const char*>(salt), sizeof salt);
@@ -125,7 +122,7 @@ namespace fs = std::filesystem;
   sc.write(reinterpret_cast<const char*>(encryptedSecretKey), sizeof encryptedSecretKey);
   sc.close();
 
-  std::ofstream pk(("keys/publicKey/" + shortHex + ".pub").c_str(), std::ios::binary);
+  std::ofstream pk(("keys/" + shortHex + ".pub").c_str(), std::ios::binary);
   pk.write(reinterpret_cast<const char*>(publicKey), sizeof publicKey);
   pk.close();
 

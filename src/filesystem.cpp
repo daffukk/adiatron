@@ -26,12 +26,12 @@ bool findKeys(
 ){
 namespace fs = std::filesystem;
 
-  if(!cfg.pubDir.empty()) {
-    pubPath = cfg.pubDir;
+  if(!cfg.pubPath.empty()) {
+    pubPath = cfg.pubPath;
   }
 
-  if(!cfg.secDir.empty()) {
-    secPath = cfg.secDir;
+  if(!cfg.secPath.empty()) {
+    secPath = cfg.secPath;
   }
 
   if(pubPath.empty() || secPath.empty()) {
@@ -40,7 +40,7 @@ namespace fs = std::filesystem;
         const auto& path = entry.path();
 
         if(pubPath.empty()) {
-          if(entry.path().extension() == ".pub") {
+          if(path.extension() == ".pub") {
             pubPath = entry.path();
           }
         }

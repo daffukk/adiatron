@@ -73,11 +73,11 @@ Config parseArgs(int argc, char** argv) {
     }
 
     else if(arg == "--pkey" && i+1 < argc) {
-      cfg.pubDir = argv[++i];
+      cfg.pubPath = argv[++i];
     }
 
     else if(arg == "--skey" && i+1 < argc) {
-      cfg.secDir = argv[++i];
+      cfg.secPath = argv[++i];
     }
 
 
@@ -110,19 +110,19 @@ Config parseArgs(int argc, char** argv) {
 
     else if(arg.find("--pkey=") == 0) {
       if(arg.substr(7).length() < 1) {
-        std::cerr << "Invalid public key.\n";
+        std::cerr << "Specify the path to the public key.\n";
         exit(1);
       } else {
-        cfg.pubDir = arg.substr(7);
+        cfg.pubPath = arg.substr(7);
       }
     }
 
     else if(arg.find("--skey=") == 0) {
       if(arg.substr(7).length() < 1) {
-        std::cerr << "Invalid secret key.\n";
+        std::cerr << "Specify the path to the secret key.\n";
         exit(1);
       } else {
-        cfg.secDir = arg.substr(7);
+        cfg.secPath = arg.substr(7);
       }
     }
 

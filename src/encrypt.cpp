@@ -122,7 +122,7 @@ uint64_t encryptFileData(
 
 int encrypt(const Config& cfg) {
 
-  if(!cfg.pubDir.empty() && !cfg.secDir.empty()) {
+  if(!cfg.pubPath.empty() && !cfg.secPath.empty()) {
     std::cout << "Keys found.\n";
   } else {
     if(!fs::is_directory(cfg.keysDir)) {
