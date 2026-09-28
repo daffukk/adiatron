@@ -1,110 +1,122 @@
+<div align="center">
+
 # Adiatron
-Adiatron is a command-line tool for encrypting and decrypting files and directories
-of any size. It uses public-key cryptography for secure key exchange and
-authenticated streaming encryption, processing data in chunks to keep memory
-usage constant regardless of file size.
 
-Directories are encrypted natively, without relying on external archiving
-tools like tar. Each file is stored as an independent, individually keyed
-entry inside the encrypted archive, with per-file encryption keys derived
-from a single master key — laying the groundwork for future selective
-operations (e.g. listing or extracting individual files without decrypting
-the entire archive).
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/daffukk/adiatron/build.yml?logo=cmake&label=Build%20adiatron)
+![GitHub License](https://img.shields.io/github/license/daffukk/adiatron?color=%23708238)
+![GitHub top language](https://img.shields.io/github/languages/top/daffukk/adiatron?logo=c%2B%2B&color=pink)
+![GitHub commits since latest release](https://img.shields.io/github/commits-since/daffukk/adiatron/latest)
+![GitHub last commit](https://img.shields.io/github/last-commit/daffukk/adiatron)
+
+---
+</div>
 
 
-## How it works
-1. A random symmetric stream key is generated
-2. The stream key is encrypted using the recipient's public key
-3. Total amount of files in directory(or 1 for a single file) is written to the header
-4. Each file is encrypted in separate entry
+A modern command-line encryption tool that processes files and directories in streaming chunks, maintaining constant memory usage regardless of archive size. Built with [libsodium](https://doc.libsodium.org/), it uses authenticated encryption and public-key cryptography for secure key exchange.
 
-Here is an encrypted file structure:
-```md
-[ boxNonce ][ boxedKey ][ BitFlags ][ fileCount ]
-[ entry: metaLen | metaBlock | dataLen | dataBlock ]
-```
+Directories are encrypted natively, without relying on external archiving tools like tar. Each file is stored as an independent, individually keyed entry inside the encrypted archive, with per-file encryption keys derived from a single master key — laying the groundwork for future selective operations
 
-## Installation
 
-### Dependencies
-- C++ 20+
-- libsodium
-- cmake
-- make
+## Getting Started
+
+### Prerequisites
+
+- C++20 compatible compiler
+- [libsodium](https://github.com/jedisct1/libsodium) development headers
+- CMake >= 3.10
 
 ### Build
 
+1. Clone the repo
+   ```bash
+   git clone https://github.com/daffukk/adiatron.git
+   ```
+
+2. Compile application 
+   ```bash
+   cd adiatron
+   make              # Simple build
+   # or
+   cmake -B build && cmake --build build
+   ```
+
+
+## Usage
+
+### Core Commands
+
 ```bash
-make
+adiatron <MODE> <INPUT> [OPTIONS]
 ```
-Or build it with cmake manually.
 
----
+#### Modes
 
-## Usage 
+| Mode    | Description |
+|---------|-------------|
+| `encrypt` | Encrypt a file or directory into `.enc` archive |
+| `decrypt` | Decrypt an archive (requires your secret key) |
+| `list`    | View archive contents without full decryption |
+| `extract` | Pull out a single file by ID (0-indexed) |
+| `add`     | Append files to an existing archive |
+| `keygen`  | Generate new keypair (auto-detect or explicit paths) |
+| `--help`  | Display usage information |
 
-To encrypt files or directories:
+#### Examples
+
 ```bash
-./adiatron encrypt file.mp4
+# Encrypt a single file
+adiatron encrypt secret.pdf
+
+# Encrypt an entire directory
+adiatron encrypt documents/
+
+# List archive contents (needs keys)
+adiatron list archive.enc
+
+# Extract file #42 without decrypting others
+adiatron extract archive.enc 42
+
+# Add new files to existing archive
+adiatron add archive.enc newfile.txt
+
+# Generate encrypted keys with passphrase
+adiatron keygen --passphrase
 ```
-To decrypt files:
+
+#### Common Options
+
 ```bash
-./adiatron decrypt file.mp4.enc
+-p, --passphrase     Encrypt secret key with passphrase
+-v, --verbose        Show per-file progress
+-o, --filename PATH  Custom output filename
+--ftime              Preserve original file modification times
+--atime              Set mtime to epoch (1970-01-01)
+--keydir DIR         Override keys directory (default: "keys")
+--pkey PATH          Explicit public key path
+--skey PATH          Explicit secret key path
+--nokeyformat        Skip key format validation (raw bytes only)
 ```
-Type `./adiatron` to display all examples and options.
+## Roadmap
 
-> [!NOTE]
-> See [Tips and Issues](#tips-and-issues) section for more information.
-
-
-### How public-key exchange works
-
-1. **Sender (Alice)** generates a key pair and sends **her public key** to the receiver.  
-2. **Receiver (Bob)** generates a key pair and sends **his public key** to the sender.  
-3. Now:
-   - Alice encrypts messages using **Bob's public key** + her secret key.  
-   - Bob decrypts messages using **Alice's public key** + his secret key.
-
-
-## Tips and Issues
-> [!TIP]
-> Keys are automatically generated during file encryption or decryption.\
-> However, you can generate keys in advance by using the command:
-> ```
-> ./adiatron keygen
-> ```
-
-> [!TIP]
-> You can create a short alias by adding this line to your shell configuration file(e.g., `~/.bashrc` or `~/.zshrc`):
-> ```bash
-> alias adiatron=/path/to/adiatron
-> ```
-
-
-## TODO
-- [ ] Vim style list mode
-- [ ] crypto_pwhash_OPSLIMIT, crypto_pwhash_MEMLIMIT and crypto_pwhash_ALG flags for lower/higher encryption power(for example --maxmem).
-- [ ] Update main.cpp code, those if else if else if else. And it would be nice to update arguments parsing logic.
-- [X] Make pretty CLI interface
-- [ ] Update readme
-    - [ ] Add information about list, extract and add modes
-    - [ ] Notes about keys and their sizes and structures
-- [ ] Write some comments in code
-- [ ] Optimize process!!!
-- [ ] Dividing encrypted file to volumes(e.g. encrypted.enc.0001, encrypted.enc.0002) by using --volume or --vol-size flags
-- [ ] .config/adiatron default configuration directory
-- [ ] Keys selection(TUI)
-- [ ] Select usb drive for keys
-- [ ] --version flag
-- [ ] Hyper-secure mode
-    - [ ] Partially decrypt a directory to list filenames
-    - [ ] Select a file from an encrypted directory by filename or hash, decrypt it into RAM, and ensure it is not written to disk, swap, or cache
-- [ ] --rnames or similar flag that will randomize filenames in archive.
-- [ ] Extract one file from archive without decrypting this file.
+- [ ] Change `.enc` to `.aear` format
 - [ ] Symlink and hardlink support
+- [ ] Update `main.cpp` code, those if else if else if else. And it would be nice to update arguments parsing logic.
+- [ ] `crypto_pwhash_OPSLIMIT`, `crypto_pwhash_MEMLIMIT` and `crypto_pwhash_ALG` flags for lower/higher encryption power(for example ``--maxmem``).
+- [ ] Dividing encrypted file to volumes(e.g. `encrypted.enc.0001`, `encrypted.enc.0002`) by using `--volume` or `--vol-size` flags
+- [ ] Keys selection(TUI)
+- [ ] `--version` flag
+- [ ] Hyper-secure mode, decryption only in RAM
+- [ ] `--rnames` or similar flag that will randomize filenames in archive.
+- [ ] Extract one file from archive without decrypting this file.
+- [ ] `.config/adiatron` default configuration directory
 - [ ] Progress bar 
 - [ ] Encrypt file entries(keys and headers) and add encrypted "roadmap" to manage them
+- [ ] Select usb drive for keys
 - [ ] CLI autocompletion
+- [ ] Vim style list mode
+
 
 ## License
-This project is licensed under [MIT](https://github.com/daffukk/adiatron/blob/main/LICENSE)
+
+MIT License – See [LICENSE](LICENSE) for details.
+
