@@ -53,7 +53,7 @@ adiatron <MODE> <INPUT> [OPTIONS]
 
 | Mode    | Description |
 |---------|-------------|
-| `encrypt` | Encrypt a file or directory into `.enc` archive |
+| `encrypt` | Encrypt a file or directory into `.aear` archive |
 | `decrypt` | Decrypt an archive (requires your secret key) |
 | `list`    | View archive contents without full decryption |
 | `extract` | Pull out a single file by ID (0-indexed) |
@@ -71,13 +71,13 @@ adiatron encrypt secret.pdf
 adiatron encrypt documents/
 
 # List archive contents (needs keys)
-adiatron list archive.enc
+adiatron list archive.aear
 
 # Extract file #42 without decrypting others
-adiatron extract archive.enc 42
+adiatron extract archive.aear 42
 
 # Add new files to existing archive
-adiatron add archive.enc newfile.txt
+adiatron add archive.aear newfile.txt
 
 # Generate encrypted keys with passphrase
 adiatron keygen --passphrase
@@ -98,11 +98,10 @@ adiatron keygen --passphrase
 ```
 ## Roadmap
 
-- [ ] Change `.enc` to `.aear` format
 - [ ] Symlink and hardlink support
 - [ ] Update `main.cpp` code, those if else if else if else. And it would be nice to update arguments parsing logic.
 - [ ] `crypto_pwhash_OPSLIMIT`, `crypto_pwhash_MEMLIMIT` and `crypto_pwhash_ALG` flags for lower/higher encryption power(for example ``--maxmem``).
-- [ ] Dividing encrypted file to volumes(e.g. `encrypted.enc.0001`, `encrypted.enc.0002`) by using `--volume` or `--vol-size` flags
+- [ ] Dividing encrypted file to volumes(e.g. `encrypted.aear.0001`, `encrypted.aear.0002`) by using `--volume` or `--vol-size` flags
 - [ ] Keys selection(TUI)
 - [ ] `--version` flag
 - [ ] Hyper-secure mode, decryption only in RAM

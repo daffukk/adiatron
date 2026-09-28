@@ -186,7 +186,7 @@ bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
     if(p.filename().empty()) {
       p = p.parent_path();
     }
-    filename = p.string() + ".enc";
+    filename = p.string() + ".aear";
   }
 
   if(std::filesystem::exists(filename)) {
