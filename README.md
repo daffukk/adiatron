@@ -98,7 +98,7 @@ adiatron keygen --passphrase
 ```
 ## Roadmap
 
-- [ ] Add auto build and publish release workflow
+- [X] Add auto build and publish release workflow
 - [ ] Symlink and hardlink support
 - [ ] Update `main.cpp` code, those if else if else if else. And it would be nice to update arguments parsing logic.
 - [ ] `crypto_pwhash_OPSLIMIT`, `crypto_pwhash_MEMLIMIT` and `crypto_pwhash_ALG` flags for lower/higher encryption power(for example ``--maxmem``).
