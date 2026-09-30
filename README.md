@@ -98,9 +98,11 @@ adiatron keygen --passphrase
 ```
 ## Roadmap
 
+- [ ] Fix filecounter when encrypting and decrypting(just add +1)
+- [ ] Multi-file support
 - [X] Add auto build and publish release workflow
 - [ ] Symlink and hardlink support
-- [ ] Update `main.cpp` code, those if else if else if else. And it would be nice to update arguments parsing logic.
+- [X] Update `main.cpp` code, those if else if else if else. And it would be nice to update arguments parsing logic.
 - [ ] `crypto_pwhash_OPSLIMIT`, `crypto_pwhash_MEMLIMIT` and `crypto_pwhash_ALG` flags for lower/higher encryption power(for example ``--maxmem``).
 - [ ] Dividing encrypted file to volumes(e.g. `encrypted.aear.0001`, `encrypted.aear.0002`) by using `--volume` or `--vol-size` flags
 - [ ] Keys selection(TUI)

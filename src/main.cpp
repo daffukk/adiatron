@@ -1,166 +1,85 @@
 #include <adiatron/commands.h>
 #include <adiatron/config.h>
 #include <adiatron/utils.h>
-#include <algorithm>
-#include <cstdlib>
+#include <stdexcept>
+#include <exception>
 #include <iostream>
+#include <cstdlib>
 #include <string>
-
-// General flags
+#include <vector>
 
 Config parseArgs(int argc, char** argv) {
   Config cfg;
-  if(argc < 2) {
-    printHelp(argc, argv);
-    exit(1);
+  std::vector<std::string> args(argv+1, argv+argc);
+  std::vector<std::string> pos; 
+
+  for(size_t i=0; i < args.size(); ++i) {
+    std::string a = args[i];
+
+    if(a == "--") { // everything after -- is positional
+                    // this is used for using files with filenames like "-file.txt"
+                    // see POSIX documentation about this
+      pos.insert(pos.end(), args.begin() + i + 1, args.end());
+      break;
+    }
+
+    if(a.size() < 2 || a[0] != '-') { // not an option
+      pos.push_back(a);
+      continue;
+    }
+
+
+    std::string val;
+    bool hasVal = false;
+    if(auto eq = a.find('='); eq != std::string::npos) {
+      val = a.substr(eq + 1);
+      a.resize(eq);
+      hasVal = true;
+    }
+
+    
+    auto value = [&]() -> std::string {
+      if(hasVal) {
+        if(val.empty()) throw std::runtime_error(a + ": empty value");
+        return val;
+      }
+      if(i+1 >= args.size()) throw std::runtime_error(a + " requires a value");
+      return args[++i];
+    };
+
+    if     (a == "-o" || a =="--filename")      cfg.filename = value();
+    else if(a == "--keydir")                cfg.keysDir  = value();
+    else if(a == "--pkey")                  cfg.pubPath = value();
+    else if(a == "--skey")                  cfg.secPath = value();
+    else if(a == "-v" || a == "--verbose")  cfg.verbose = true;
+    else if(a == "-p" || a == "--passphrase") cfg.usePassphrase = true;
+    else if(a == "--nokeyformat")           cfg.noKeyFormat = true;
+    else if(a == "--atime")                 cfg.recordAtime = true;
+    else if(a == "--ftime")                 cfg.recordFtime = true;
+    else if(a == "--help")                  cfg.mode = "--help";
+    else throw std::runtime_error("Unknown argument: " + a);
   }
-
-  cfg.mode = argv[1];
-
-
-  if(std::find(modes.begin(), modes.end(), cfg.mode) == modes.end()) {
-    std::cout << "Invalid mode. Type --help for more information\n";
-    exit(1);
-  }
-
 
   if(cfg.mode == "--help") return cfg;
+  if(pos.empty()) throw std::runtime_error("Mode is not selected");
 
-  if(cfg.mode != "keygen" && argc < 3) {
-    std::cerr << "File is not selected. Type --help for more information.\n";
-    exit(1);
-  }
-
-  if(cfg.mode != "keygen") cfg.file = argv[2];
-
-  if(cfg.mode == "extract") {
-    if(argc < 4) {
-      std::cerr << "FileID is not selected. Type --help for more information.\n";
-      exit(1);
-    }
-
-    cfg.fileId = std::stoi(argv[3]);
-  }
-
-  if(cfg.mode == "add") {
-    if(argc < 4) {
-      std::cerr << "Target is not selected. Type --help for more information.\n";
-      exit(1);
-    }
-
-    cfg.target = argv[3];
-  }
+  cfg.mode = pos[0];
+  size_t need = 0; // how many positional arguments is needed with mode
   
+  if     (cfg.mode == "keygen") need = 0;
+  else if(cfg.mode == "extract" || cfg.mode == "add") need = 2;
+  else if(cfg.mode == "encrypt" || cfg.mode == "decrypt" || cfg.mode == "list") need = 1;
+  else throw std::runtime_error("Invalid mode: " + cfg.mode);
 
-  int i;
-  if(cfg.mode == "extract" || cfg.mode == "add")  {
-    i = 4;
-  } else if(cfg.mode == "keygen") {
-    i = 2;
-  } else {
-    i = 3;
-  }
+  if(pos.size() - 1 != need)
+    throw std::runtime_error("Wrong number of arguments for " + cfg.mode);
 
-  for(; i < argc; i++) {
-    std::string arg = argv[i];
-    
-    if((arg == "--filename" || arg == "-o") && i+1 < argc) {
-      cfg.filename = argv[++i];
-    }
+  if(need >= 1) cfg.file = pos[1];
+  if(cfg.mode == "extract") cfg.fileId = std::stoi(pos[2]);
+  if(cfg.mode == "add")     cfg.target = pos[2];
 
-    else if(arg == "--keydir" && i+1 < argc) {
-      cfg.keysDir = argv[++i];
-    }
-
-    else if(arg == "--pkey" && i+1 < argc) {
-      cfg.pubPath = argv[++i];
-    }
-
-    else if(arg == "--skey" && i+1 < argc) {
-      cfg.secPath = argv[++i];
-    }
-
-
-    else if(arg.find("--filename=") == 0) {
-      if(arg.substr(11).length() < 1) {
-        std::cerr << "Invalid filename.\n";
-        exit(1);
-      } else {
-        cfg.filename = arg.substr(11);
-      }
-    }
-
-    else if(arg.find("-o=") == 0) {
-      if(arg.substr(3).length() < 1) {
-        std::cerr << "Invalid filename.\n";
-        exit(1);
-      } else {
-        cfg.filename = arg.substr(3);
-      }
-    }
-
-    else if(arg.find("--keydir=") == 0) {
-      if(arg.substr(9).length() < 1) {
-        std::cerr << "Invalid keydir.\n";
-        exit(1);
-      } else {
-        cfg.keysDir = arg.substr(11);
-      }
-    }
-
-    else if(arg.find("--pkey=") == 0) {
-      if(arg.substr(7).length() < 1) {
-        std::cerr << "Specify the path to the public key.\n";
-        exit(1);
-      } else {
-        cfg.pubPath = arg.substr(7);
-      }
-    }
-
-    else if(arg.find("--skey=") == 0) {
-      if(arg.substr(7).length() < 1) {
-        std::cerr << "Specify the path to the secret key.\n";
-        exit(1);
-      } else {
-        cfg.secPath = arg.substr(7);
-      }
-    }
-
-    else if(arg == "--atime") {
-      if(cfg.mode == "encrypt") {
-        cfg.recordAtime = true;
-      } else {
-        std::cout << "Invalid mode, you can use --atime only when encrypting.\n";
-        exit(1);
-      }
-    }
-
-    else if(arg == "--ftime") {
-      if(cfg.mode == "encrypt") {
-        cfg.recordFtime = true;
-      } else {
-        std::cout << "Invalid mode, you can use --ftime only when encrypting.\n";
-        exit(1);
-      }
-    }
-
-    else if(arg == "--verbose" || arg == "-v") {
-      cfg.verbose = true;
-    }
-
-    else if(arg == "--passphrase" || arg == "-p") {
-      cfg.usePassphrase = true;
-    }
-
-    else if(arg == "--nokeyformat") {
-      cfg.noKeyFormat = true;
-    }
-
-    else {
-      std::cout << "Unknown argument: " << arg << "\n";
-      exit(1);
-    }
-  }
+  if((cfg.recordFtime || cfg.recordAtime) && cfg.mode != "encrypt")
+    throw std::runtime_error("--atime/--ftime only work with encrypt");
 
   return cfg;
 }
@@ -169,22 +88,27 @@ Config parseArgs(int argc, char** argv) {
 
 
 
-
 int main(int argc, char* argv[]) {
-  Config cfg = parseArgs(argc, argv);
-  if(argc < 3 && cfg.mode != "keygen") {
+  if(argc < 2) {
     printHelp(argc, argv);
     return -1;
   }
 
 
-  if(cfg.mode == "keygen")       return keygen(cfg);
-  else if(cfg.mode == "encrypt") return encrypt(cfg);
-  else if(cfg.mode == "decrypt") return decrypt(cfg);
-  else if(cfg.mode == "list")    return list(cfg);
-  else if(cfg.mode == "extract") return extract(cfg);
-  else if(cfg.mode == "add")     return add(cfg);
-  else if(cfg.mode == "--help")  printHelp(argc, argv);
+  try {
+    Config cfg = parseArgs(argc, argv);
+  
+    if(cfg.mode == "keygen")       return keygen(cfg);
+    else if(cfg.mode == "encrypt") return encrypt(cfg);
+    else if(cfg.mode == "decrypt") return decrypt(cfg);
+    else if(cfg.mode == "list")    return list(cfg);
+    else if(cfg.mode == "extract") return extract(cfg);
+    else if(cfg.mode == "add")     return add(cfg);
+    else if(cfg.mode == "--help")  printHelp(argc, argv);
+  } catch(const std::exception& e) {
+    std::cerr << "Error: " << e.what()  << "\n";
+    return -1;
+  } 
 
   return 0;
 }
