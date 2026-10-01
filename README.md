@@ -98,7 +98,7 @@ adiatron keygen --passphrase
 ```
 ## Roadmap
 
-- [ ] Fix filecounter when encrypting and decrypting(just add +1)
+- [X] Fix filecounter when encrypting and decrypting(just add +1)
 - [ ] Multi-file support
 - [X] Add auto build and publish release workflow
 - [ ] Symlink and hardlink support

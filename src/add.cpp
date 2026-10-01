@@ -99,10 +99,10 @@ namespace fs=std::filesystem;
 
     
     std::string sign;
-    double percent = (double(e.id) / newFiles.size()) * 100;
+    double percent = (double(e.id + 1) / newFiles.size()) * 100;
 
     std::cout << (cfg.verbose ? "" : "\r\033[K") 
-      << e.id << "/" << newFiles.size() << "(" << std::fixed << std::setprecision(2) << percent << "%) "
+      << e.id + 1 << "/" << newFiles.size() << "(" << std::fixed << std::setprecision(2) << percent << "%) "
       << "Encrypted: " 
       << color::cyan
       << truncateMiddle(e.path, terminalWidth)

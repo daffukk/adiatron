@@ -121,17 +121,6 @@ uint64_t encryptFileData(
 
 
 int encrypt(const Config& cfg) {
-
-  if(!cfg.pubPath.empty() && !cfg.secPath.empty()) {
-    std::cout << "Keys found.\n";
-  } else {
-    if(!fs::is_directory(cfg.keysDir)) {
-      std::cout << "Generating keys...\n";
-      keygen(cfg);
-    }
-  }
-
-
   if(sodium_init() != 0) {
     std::cerr << "Error sodium\n";
     return -1;
@@ -188,10 +177,10 @@ int encrypt(const Config& cfg) {
 
     
     std::string sign;
-    double percent = (double(e.id) / files.size()) * 100;
+    double percent = (double(e.id + 1) / files.size()) * 100;
 
     std::cout << (cfg.verbose ? "" : "\r\033[K") 
-      << e.id << "/" << files.size() << "(" << std::fixed << std::setprecision(2) << percent << "%) "
+      << e.id + 1 << "/" << files.size() << "(" << std::fixed << std::setprecision(2) << percent << "%) "
       << "Encrypted: " 
       << color::cyan
       << truncateMiddle(e.path, terminalWidth)
