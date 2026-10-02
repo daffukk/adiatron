@@ -60,6 +60,7 @@ adiatron <MODE> <INPUT> [OPTIONS]
 | `add`     | Append files to an existing archive |
 | `keygen`  | Generate new keypair (auto-detect or explicit paths) |
 | `--help`  | Display usage information |
+| `--version` | Display version |
 
 #### Examples
 
@@ -98,6 +99,7 @@ adiatron keygen --passphrase
 ```
 ## Roadmap
 
+- [ ] Update readme
 - [X] Fix filecounter when encrypting and decrypting(just add +1)
 - [ ] Multi-file support
 - [X] Add auto build and publish release workflow
@@ -106,7 +108,7 @@ adiatron keygen --passphrase
 - [ ] `crypto_pwhash_OPSLIMIT`, `crypto_pwhash_MEMLIMIT` and `crypto_pwhash_ALG` flags for lower/higher encryption power(for example ``--maxmem``).
 - [ ] Dividing encrypted file to volumes(e.g. `encrypted.aear.0001`, `encrypted.aear.0002`) by using `--volume` or `--vol-size` flags
 - [ ] Keys selection(TUI)
-- [ ] `--version` flag
+- [X] `--version` flag
 - [ ] Hyper-secure mode, decryption only in RAM
 - [ ] `--rnames` or similar flag that will randomize filenames in archive.
 - [ ] Extract one file from archive without decrypting this file.

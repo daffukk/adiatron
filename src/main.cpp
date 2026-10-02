@@ -57,10 +57,12 @@ Config parseArgs(int argc, char** argv) {
     else if(a == "--atime")                 cfg.recordAtime = true;
     else if(a == "--ftime")                 cfg.recordFtime = true;
     else if(a == "--help")                  cfg.mode = "--help";
+    else if(a == "--version")               cfg.mode = "--version";
     else throw std::runtime_error("Unknown argument: " + a);
   }
 
   if(cfg.mode == "--help") return cfg;
+  if(cfg.mode == "--version") return cfg;
   if(pos.empty()) throw std::runtime_error("Mode is not selected");
 
   cfg.mode = pos[0];
@@ -105,6 +107,8 @@ int main(int argc, char* argv[]) {
     else if(cfg.mode == "extract") return extract(cfg);
     else if(cfg.mode == "add")     return add(cfg);
     else if(cfg.mode == "--help")  printHelp(argc, argv);
+    else if(cfg.mode == "--version")
+      std::cout << "adiatron " << ADIATRON_VERSION << "\n";
   } catch(const std::exception& e) {
     std::cerr << "Error: " << e.what()  << "\n";
     return -1;

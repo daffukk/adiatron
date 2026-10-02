@@ -13,6 +13,7 @@ inline void printHelp(int argc, char* argv[]) {
   std::filesystem::path adiatron = argv[0];
   std::string name = adiatron.filename().generic_string();
   std::cout
+    << name << " " << ADIATRON_VERSION << "\n" 
     << "Usage: " << name << " <MODE> <OPTIONS>\n"
     << "\n"
     << "Modes:\n"
