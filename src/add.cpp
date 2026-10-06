@@ -72,7 +72,7 @@ namespace fs=std::filesystem;
 
     // BITFLAGS
     if(bf.Ftime) e.mtime        = toUnixTime(fs::last_write_time(f.path));
-    if(cfg.recordAtime) e.mtime = 0;
+    else if(cfg.recordAtime) e.mtime = 0;
 
 
     auto metaBlock   = encryptMeta(e, archive.streamKey, bf);

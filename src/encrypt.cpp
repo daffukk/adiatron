@@ -105,9 +105,8 @@ uint64_t encryptFileData(
   while(true) {
     file.read(reinterpret_cast<char*>(fileBuffer), CHUNK_SIZE);
     size_t readBytes = file.gcount();
-    if(readBytes <= 0) break;
 
-    bool isLast = file.eof();
+    bool isLast = file.peek() == std::ifstream::traits_type::eof();
     unsigned char tag = isLast ? 
       crypto_secretstream_xchacha20poly1305_TAG_FINAL : 
       crypto_secretstream_xchacha20poly1305_TAG_MESSAGE;
@@ -125,6 +124,8 @@ uint64_t encryptFileData(
     );
     out.write(reinterpret_cast<char*>(outBuffer), outLen);
     written += outLen;
+
+    if(isLast) break;
   }
   return written;
 }
@@ -159,7 +160,7 @@ int encrypt(const Config& cfg) {
 
     // BITFLAGS
     if(cfg.recordFtime) e.mtime = toUnixTime(fs::last_write_time(f.path));
-    if(cfg.recordAtime) e.mtime = 0;
+    else if(cfg.recordAtime) e.mtime = 0;
 
 
 

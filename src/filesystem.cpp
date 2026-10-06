@@ -206,12 +206,6 @@ bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
     }
   }
 
-  out.file.open(filename, std::ios::binary);
-  if(!out.file) {
-    std::cerr << "Cannot create output file.\n";
-    return false;
-  }
-
 
   unsigned char publicKey[crypto_box_PUBLICKEYBYTES];
   unsigned char secretKey[crypto_box_SECRETKEYBYTES];
@@ -239,6 +233,11 @@ bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
 
   if(!loadSecretKey(secPath, secretKey, cfg.noKeyFormat)) return false;
 
+  out.file.open(filename, std::ios::binary);
+  if(!out.file) {
+    std::cerr << "Cannot create output file.\n";
+    return false;
+  }
 
   crypto_secretstream_xchacha20poly1305_keygen(out.streamKey);
 
