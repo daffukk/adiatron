@@ -1,6 +1,7 @@
 #include <adiatron/commands.h>
 #include <adiatron/config.h>
 #include <adiatron/utils.h>
+#include <cstdint>
 #include <stdexcept>
 #include <exception>
 #include <iostream>
@@ -12,6 +13,7 @@ Config parseArgs(int argc, char** argv) {
   Config cfg;
   std::vector<std::string> args(argv+1, argv+argc);
   std::vector<std::string> pos; 
+  std::vector<std::string> files;
 
   for(size_t i=0; i < args.size(); ++i) {
     std::string a = args[i];
@@ -66,17 +68,32 @@ Config parseArgs(int argc, char** argv) {
   if(pos.empty()) throw std::runtime_error("Mode is not selected");
 
   cfg.mode = pos[0];
-  size_t need = 0; // how many positional arguments is needed with mode
+
+  size_t minArgs, maxArgs; // how many positional arguments is needed with mode
   
-  if     (cfg.mode == "keygen") need = 0;
-  else if(cfg.mode == "extract" || cfg.mode == "add") need = 2;
-  else if(cfg.mode == "encrypt" || cfg.mode == "decrypt" || cfg.mode == "list") need = 1;
+  if     (cfg.mode == "keygen") { minArgs = 0; maxArgs = 0; }
+  else if(cfg.mode == "extract" || cfg.mode == "add") 
+    { minArgs = 2; maxArgs = 2; }
+  else if(cfg.mode == "encrypt") { minArgs = 1; maxArgs = SIZE_MAX; }
+  else if(cfg.mode == "decrypt" || cfg.mode == "list") 
+    { minArgs = 1; maxArgs = 1; }
   else throw std::runtime_error("Invalid mode: " + cfg.mode);
 
-  if(pos.size() - 1 != need)
-    throw std::runtime_error("Wrong number of arguments for " + cfg.mode);
 
-  if(need >= 1) cfg.file = pos[1];
+  if(pos.size() - 1 < minArgs)
+    throw std::runtime_error("Not enough arguments for " + cfg.mode);
+
+  if(pos.size() - 1 > maxArgs)
+    throw std::runtime_error("Too many arguments for " + cfg.mode);
+
+  
+  if(cfg.mode == "encrypt") {
+    cfg.files.assign(pos.begin() + 1, pos.end()); // all files
+  } else if(minArgs >= 1) {
+    cfg.file = pos[1];
+  }
+
+
   if(cfg.mode == "extract") cfg.fileId = std::stoi(pos[2]);
   if(cfg.mode == "add")     cfg.target = pos[2];
 

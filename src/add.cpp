@@ -43,7 +43,7 @@ namespace fs=std::filesystem;
   }
 
 
-  std::vector<fs::path> newFiles = collectFiles(cfg.target);
+  std::vector<InputFile> newFiles = collectFiles({cfg.target});
   uint64_t newFileCount = newFiles.size();
 
   OpenedArchive archive;
@@ -53,7 +53,6 @@ namespace fs=std::filesystem;
 
 
   uint64_t nextId   = archive.fileCount;
-  bool isDirSource  = fs::is_directory(cfg.target);
   int terminalWidth = getTerminalWidth() - 40;
 
   std::fstream appendFile(cfg.file, std::ios::binary | std::ios::in | std::ios::out); // open second stream for append 
@@ -64,20 +63,15 @@ namespace fs=std::filesystem;
 
   appendFile.seekp(0, std::ios::end);
 
-  for(const auto& filePath : newFiles) {
+  for(const auto& f : newFiles) {
     FileEntry e;
-    e.id   = nextId++;
-    e.type = EntryType::file;
+    e.id       = nextId++;
+    e.type     = EntryType::file;
+    e.path     = f.archivePath;
+    e.dataSize = fs::file_size(f.path);
 
-    if(isDirSource) {
-      e.path = fs::relative(filePath, cfg.target).generic_string();
-    } else {
-      e.path = filePath.filename().generic_string();
-    }
-
-    e.dataSize = fs::file_size(filePath);
-
-    if(bf.Ftime) e.mtime        = toUnixTime(fs::last_write_time(filePath));
+    // BITFLAGS
+    if(bf.Ftime) e.mtime        = toUnixTime(fs::last_write_time(f.path));
     if(cfg.recordAtime) e.mtime = 0;
 
 
@@ -90,7 +84,7 @@ namespace fs=std::filesystem;
     uint64_t placeholder  = 0;
     appendFile.write(reinterpret_cast<char*>(&placeholder), sizeof placeholder);
 
-    uint64_t encLen = encryptFileData(appendFile, filePath, e.id, archive.streamKey);
+    uint64_t encLen = encryptFileData(appendFile, f.path, e.id, archive.streamKey);
 
     std::streampos afterPos = appendFile.tellp();
     appendFile.seekp(lenPos);
@@ -117,8 +111,7 @@ namespace fs=std::filesystem;
   appendFile.close(); // close second stream, appending done
 
 
-  uint64_t totalFileCount = archive.fileCount + newFileCount;
-  if(!updateFileCount(cfg.file, totalFileCount)) {
+  if(!updateFileCount(cfg.file, archive.fileCount + newFileCount)) {
     std::cerr << "Warning: files were added, but file count could not be updated\n";
     return -1;
   } // third and last stream, updating filecount.

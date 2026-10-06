@@ -14,7 +14,7 @@ inline void printHelp(int argc, char* argv[]) {
   std::string name = adiatron.filename().generic_string();
   std::cout
     << name << " " << ADIATRON_VERSION << "\n" 
-    << "Usage: " << name << " <MODE> <OPTIONS>\n"
+    << "Usage: " << name << " <MODE> <INPUT> [OPTIONS]\n"
     << "\n"
     << "Modes:\n"
     << "\tencrypt \t Encrypt a file or direcorty.\n"

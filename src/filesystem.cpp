@@ -9,6 +9,7 @@
 #include <sodium/crypto_secretbox.h>
 #include <sodium/randombytes.h>
 #include <sodium/utils.h>
+#include <stdexcept>
 #include <string>
 
 
@@ -178,14 +179,15 @@ bool openArchive(const Config& cfg, OpenedArchive &out) {
 
 bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
   std::string filename;
-  if(cfg.filename != "" && cfg.filename.size() > 0) {
+  if(!cfg.filename.empty()) {
     filename = cfg.filename;
   } else {
-    std::filesystem::path p(cfg.file);
+    
+    if(cfg.files.size() != 1)
+      throw std::runtime_error("Use -o to name the archive when encrypting multiple inputs");
 
-    if(p.filename().empty()) {
-      p = p.parent_path();
-    }
+    std::filesystem::path p(cfg.files[0]);
+    if(p.filename().empty()) p = p.parent_path(); // "dir/" -> "dir"
     filename = p.string() + ".aear";
   }
 

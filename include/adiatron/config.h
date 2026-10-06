@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <string>
+#include <vector>
 
 // =================
 //  CONSTANTS
@@ -20,6 +21,7 @@ struct Config {
   std::string mode;
 
   std::string file;
+  std::vector<std::string> files;
   std::string filename = "";
   std::string target;
   uint64_t fileId;

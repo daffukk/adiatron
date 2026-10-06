@@ -16,25 +16,39 @@
 #include <fstream>
 #include <cstdint>
 #include <iosfwd>
+#include <stdexcept>
 #include <string>
 #include <vector>
+#include <set>
 
 namespace fs = std::filesystem;
 
 
-std::vector<fs::path> collectFiles(const std::string& file) {
-  std::vector<fs::path> files;
+std::vector<InputFile> collectFiles(const std::vector<std::string>& sources) {
+  std::vector<InputFile> result;
+  std::set<std::string> seen;
 
-  if(fs::is_directory(file)) {
-    for(const auto& dirEntry : fs::recursive_directory_iterator(file)) {
-      if(!fs::is_directory(dirEntry)) {
-        files.push_back(dirEntry.path());
+  auto add = [&](const fs::path& p, std::string inArchive) {
+    if(!seen.insert(inArchive).second)
+      throw std::runtime_error("Duplicate path in archive: " + inArchive);
+    result.push_back({p, std::move(inArchive)});
+  };
+
+  for(const auto& src : sources) {
+    if(!fs::exists(src))
+      throw std::runtime_error("No such file or directory: " + src);
+
+    if(fs::is_directory(src)) {
+      for(const auto& e : fs::recursive_directory_iterator(src)) {
+        if(e.is_regular_file())
+          add(e.path(), fs::relative(e.path(), src).generic_string());
       }
+    } else {
+      add(src, fs::path(src).filename().generic_string());
     }
-  } else {
-    files.push_back(file);
   }
-  return files;
+
+  return result;
 }
 
 
@@ -127,34 +141,24 @@ int encrypt(const Config& cfg) {
   }
 
 
-  std::vector<fs::path> files = collectFiles(cfg.file);
-  uint64_t fileCount = files.size();
+  std::vector<InputFile> files = collectFiles(cfg.files);
 
   CreatedArchive archive;
-  if(!createArchive(cfg, archive, fileCount)) return -1;
+  if(!createArchive(cfg, archive, files.size())) return -1;
 
-
-  uint64_t nextId   = 0;
-  bool isDirSource  = fs::is_directory(cfg.file);
+  auto bf           = readBitFlags(archive.flags);
   int terminalWidth = getTerminalWidth() - 45;
+  uint64_t nextId   = 0;
 
-  for(const auto& filePath : files) {
+  for(const auto& f : files) {
     FileEntry e;
-    e.id   = nextId++;
-    e.type = EntryType::file;
-
-    if(isDirSource) {
-      e.path = fs::relative(filePath, cfg.file).generic_string();
-    } else {
-      e.path = filePath.filename().generic_string();
-    }
-
-    e.dataSize = fs::file_size(filePath);
+    e.id       = nextId++;
+    e.type     = EntryType::file;
+    e.path     = f.archivePath;
+    e.dataSize = fs::file_size(f.path);
 
     // BITFLAGS
-    auto bf = readBitFlags(archive.flags);
-
-    if(cfg.recordFtime) e.mtime = toUnixTime(fs::last_write_time(filePath));
+    if(cfg.recordFtime) e.mtime = toUnixTime(fs::last_write_time(f.path));
     if(cfg.recordAtime) e.mtime = 0;
 
 
@@ -168,7 +172,7 @@ int encrypt(const Config& cfg) {
     uint64_t placeholder  = 0;
     archive.file.write(reinterpret_cast<char*>(&placeholder), sizeof placeholder);
 
-    uint64_t encLen = encryptFileData(archive.file, filePath, e.id, archive.streamKey);
+    uint64_t encLen = encryptFileData(archive.file, f.path, e.id, archive.streamKey);
 
     std::streampos afterPos = archive.file.tellp();
     archive.file.seekp(lenPos);

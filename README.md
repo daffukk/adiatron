@@ -100,8 +100,9 @@ adiatron keygen --passphrase
 ## Roadmap
 
 - [ ] Update readme
+    - [ ] Add information about multi-file usage 
 - [X] Fix filecounter when encrypting and decrypting(just add +1)
-- [ ] Multi-file support
+- [X] Multi-file support
 - [X] Add auto build and publish release workflow
 - [ ] Symlink and hardlink support
 - [X] Update `main.cpp` code, those if else if else if else. And it would be nice to update arguments parsing logic.
