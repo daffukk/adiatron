@@ -23,7 +23,7 @@ bool updateFileCount(const std::string& file, uint64_t newFileCount) {
   constexpr std::streamoff FILE_COUNT_OFFSET =
     crypto_secretbox_NONCEBYTES +
     (crypto_secretbox_MACBYTES + crypto_secretstream_xchacha20poly1305_KEYBYTES) +
-    sizeof(uint64_t);
+    sizeof(OpenedArchive::flags);
 
   f.seekp(FILE_COUNT_OFFSET);
   f.write(reinterpret_cast<char*>(&newFileCount), sizeof newFileCount);
@@ -40,6 +40,7 @@ namespace fs=std::filesystem;
 
   if(sodium_init() != 0) {
     std::cerr << "Error sodium\n";
+    return -1;
   }
 
 
@@ -52,7 +53,6 @@ namespace fs=std::filesystem;
   archive.file.close(); // close first stream
 
 
-  uint64_t nextId   = archive.fileCount;
   int terminalWidth = getTerminalWidth() - 40;
 
   std::fstream appendFile(cfg.file, std::ios::binary | std::ios::in | std::ios::out); // open second stream for append 
@@ -62,53 +62,66 @@ namespace fs=std::filesystem;
   }
 
   appendFile.seekp(0, std::ios::end);
+  const std::streamoff originalSize = appendFile.tellp();
 
-  for(const auto& f : newFiles) {
-    FileEntry e;
-    e.id       = nextId++;
-    e.type     = EntryType::file;
-    e.path     = f.archivePath;
-    e.dataSize = fs::file_size(f.path);
+  try {
+    uint64_t nextId   = archive.fileCount;
+    uint64_t done     = 0;
 
-    // BITFLAGS
-    if(bf.Ftime) e.mtime        = toUnixTime(fs::last_write_time(f.path));
-    else if(cfg.recordAtime) e.mtime = 0;
+    for(const auto& f : newFiles) {
+      FileEntry e;
+      e.id       = nextId++;
+      e.type     = EntryType::file;
+      e.path     = f.archivePath;
+      e.dataSize = fs::file_size(f.path);
 
-
-    auto metaBlock   = encryptMeta(e, archive.streamKey, bf);
-    uint64_t metaLen = metaBlock.size();
-    appendFile.write(reinterpret_cast<char*>(&metaLen), sizeof metaLen);
-    appendFile.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());
-
-    std::streampos lenPos = appendFile.tellp();
-    uint64_t placeholder  = 0;
-    appendFile.write(reinterpret_cast<char*>(&placeholder), sizeof placeholder);
-
-    uint64_t encLen = encryptFileData(appendFile, f.path, e.id, archive.streamKey);
-
-    std::streampos afterPos = appendFile.tellp();
-    appendFile.seekp(lenPos);
-    appendFile.write(reinterpret_cast<char*>(&encLen), sizeof encLen);
-    appendFile.seekp(afterPos);
-
-    
-    std::string sign;
-    double percent = (double(e.id + 1) / newFiles.size()) * 100;
-
-    std::cout << (cfg.verbose ? "" : "\r\033[K") 
-      << e.id + 1 << "/" << newFiles.size() << "(" << std::fixed << std::setprecision(2) << percent << "%) "
-      << "Encrypted: " 
-      << color::cyan
-      << truncateMiddle(e.path, terminalWidth)
-      << color::yellow
-      << " (" << convertBytes(e.dataSize, sign) << sign << ")"
-      << color::reset;
-    cfg.verbose ? std::cout << "\n" : std::cout << std::flush;
+      // BITFLAGS
+      if(bf.Ftime) e.mtime                    = toUnixTime(fs::last_write_time(f.path));
+      if(bf.Ftime && cfg.recordAtime) e.mtime = 0;
 
 
+      auto metaBlock   = encryptMeta(e, archive.streamKey, bf);
+      uint64_t metaLen = metaBlock.size();
+      appendFile.write(reinterpret_cast<char*>(&metaLen), sizeof metaLen);
+      appendFile.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());
+
+      std::streampos lenPos = appendFile.tellp();
+      uint64_t placeholder  = 0;
+      appendFile.write(reinterpret_cast<char*>(&placeholder), sizeof placeholder);
+
+      uint64_t encLen = encryptFileData(appendFile, f.path, e.id, archive.streamKey);
+
+      std::streampos afterPos = appendFile.tellp();
+      appendFile.seekp(lenPos);
+      appendFile.write(reinterpret_cast<char*>(&encLen), sizeof encLen);
+      appendFile.seekp(afterPos);
+
+      
+      ++done;
+      std::string sign;
+      double percent = double(done) / newFiles.size() * 100;
+
+      std::cout << (cfg.verbose ? "" : "\r\033[K") 
+        << done << "/" << newFiles.size() << "(" << std::fixed << std::setprecision(2) << percent << "%) "
+        << "Encrypted: " 
+        << color::cyan
+        << truncateMiddle(e.path, terminalWidth)
+        << color::yellow
+        << " (" << convertBytes(e.dataSize, sign) << sign << ")"
+        << color::reset;
+      cfg.verbose ? std::cout << "\n" : std::cout << std::flush;
+
+
+    }
+
+    if(!appendFile) throw std::runtime_error("Write error (disk full?)");
+    appendFile.close(); // close second stream, appending done
+  
+  } catch(...) {
+    appendFile.close();
+    fs::resize_file(cfg.file, originalSize);
+    throw;
   }
-
-  appendFile.close(); // close second stream, appending done
 
 
   if(!updateFileCount(cfg.file, archive.fileCount + newFileCount)) {

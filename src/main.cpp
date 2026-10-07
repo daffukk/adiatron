@@ -97,8 +97,8 @@ Config parseArgs(int argc, char** argv) {
   if(cfg.mode == "extract") cfg.fileId = std::stoi(pos[2]);
   if(cfg.mode == "add")     cfg.target = pos[2];
 
-  if((cfg.recordFtime || cfg.recordAtime) && cfg.mode != "encrypt")
-    throw std::runtime_error("--atime/--ftime only work with encrypt");
+  if((cfg.recordFtime || cfg.recordAtime) && (cfg.mode != "encrypt" || cfg.mode != "add"))
+    throw std::runtime_error("--atime/--ftime only work with add or encrypt modes");
 
   return cfg;
 }
