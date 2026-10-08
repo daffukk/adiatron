@@ -2,11 +2,12 @@
 
 # Adiatron
 
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/daffukk/adiatron/build.yml?logo=cmake&label=Build%20adiatron)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/daffukk/adiatron/build.yml?logo=cmake&label=build)
 ![GitHub License](https://img.shields.io/github/license/daffukk/adiatron?color=%23708238)
 ![GitHub top language](https://img.shields.io/github/languages/top/daffukk/adiatron?logo=c%2B%2B&color=pink)
 ![GitHub commits since latest release](https://img.shields.io/github/commits-since/daffukk/adiatron/latest)
 ![GitHub last commit](https://img.shields.io/github/last-commit/daffukk/adiatron)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/daffukk/adiatron/total)
 
 ---
 </div>
@@ -56,7 +57,7 @@ adiatron <MODE> <INPUT> [OPTIONS]
 | `encrypt` | Encrypt a file or directory into `.aear` archive |
 | `decrypt` | Decrypt an archive (requires your secret key) |
 | `list`    | View archive contents without full decryption |
-| `extract` | Pull out a single file by ID (0-indexed) |
+| `extract` | Pull out files by ID (0-indexed) |
 | `add`     | Append files to an existing archive |
 | `keygen`  | Generate new keypair (auto-detect or explicit paths) |
 | `--help`  | Display usage information |
@@ -71,14 +72,23 @@ adiatron encrypt secret.pdf
 # Encrypt an entire directory
 adiatron encrypt documents/
 
+# Encrypt multiple files or directories  // Use -o to name the archive when encrypting multiple inputs
+adiatron encrypt secret.pdf documents/ -o archive.aear 
+
 # List archive contents (needs keys)
 adiatron list archive.aear
 
 # Extract file #42 without decrypting others
 adiatron extract archive.aear 42
 
+# Extract files #12 and #74 
+adiatron extract archive.aear 12 74
+
 # Add new files to existing archive
 adiatron add archive.aear newfile.txt
+
+# Add multiple files or directories
+adiatron add archive.aear newfile.txt newdir/ 
 
 # Generate encrypted keys with passphrase
 adiatron keygen --passphrase
@@ -99,17 +109,13 @@ adiatron keygen --passphrase
 ```
 ## Roadmap
 
-- [ ] Update readme
-    - [ ] Add information about multi-file usage 
-- [X] Fix filecounter when encrypting and decrypting(just add +1)
-- [X] Multi-file support
-- [X] Add auto build and publish release workflow
+- [ ] Encrypt `fileCount` and `bitFlags` with `boxedKey` or something
+- [ ] Add one extra bit integer to header to store something in further versions and don't break version capability 
+- [ ] Filepath to add files inside archive
 - [ ] Symlink and hardlink support
-- [X] Update `main.cpp` code, those if else if else if else. And it would be nice to update arguments parsing logic.
 - [ ] `crypto_pwhash_OPSLIMIT`, `crypto_pwhash_MEMLIMIT` and `crypto_pwhash_ALG` flags for lower/higher encryption power(for example ``--maxmem``).
 - [ ] Dividing encrypted file to volumes(e.g. `encrypted.aear.0001`, `encrypted.aear.0002`) by using `--volume` or `--vol-size` flags
 - [ ] Keys selection(TUI)
-- [X] `--version` flag
 - [ ] Hyper-secure mode, decryption only in RAM
 - [ ] `--rnames` or similar flag that will randomize filenames in archive.
 - [ ] Extract one file from archive without decrypting this file.
