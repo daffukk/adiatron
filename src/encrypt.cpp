@@ -16,25 +16,39 @@
 #include <fstream>
 #include <cstdint>
 #include <iosfwd>
+#include <stdexcept>
 #include <string>
 #include <vector>
+#include <set>
 
 namespace fs = std::filesystem;
 
 
-std::vector<fs::path> collectFiles(const std::string& file) {
-  std::vector<fs::path> files;
+std::vector<InputFile> collectFiles(const std::vector<std::string>& sources) {
+  std::vector<InputFile> result;
+  std::set<std::string> seen;
 
-  if(fs::is_directory(file)) {
-    for(const auto& dirEntry : fs::recursive_directory_iterator(file)) {
-      if(!fs::is_directory(dirEntry)) {
-        files.push_back(dirEntry.path());
+  auto add = [&](const fs::path& p, std::string inArchive) {
+    if(!seen.insert(inArchive).second)
+      throw std::runtime_error("Duplicate path in archive: " + inArchive);
+    result.push_back({p, std::move(inArchive)});
+  };
+
+  for(const auto& src : sources) {
+    if(!fs::exists(src))
+      throw std::runtime_error("No such file or directory: " + src);
+
+    if(fs::is_directory(src)) {
+      for(const auto& e : fs::recursive_directory_iterator(src)) {
+        if(e.is_regular_file())
+          add(e.path(), fs::relative(e.path(), src).generic_string());
       }
+    } else {
+      add(src, fs::path(src).filename().generic_string());
     }
-  } else {
-    files.push_back(file);
   }
-  return files;
+
+  return result;
 }
 
 
@@ -91,9 +105,8 @@ uint64_t encryptFileData(
   while(true) {
     file.read(reinterpret_cast<char*>(fileBuffer), CHUNK_SIZE);
     size_t readBytes = file.gcount();
-    if(readBytes <= 0) break;
 
-    bool isLast = file.eof();
+    bool isLast = file.peek() == std::ifstream::traits_type::eof();
     unsigned char tag = isLast ? 
       crypto_secretstream_xchacha20poly1305_TAG_FINAL : 
       crypto_secretstream_xchacha20poly1305_TAG_MESSAGE;
@@ -111,6 +124,8 @@ uint64_t encryptFileData(
     );
     out.write(reinterpret_cast<char*>(outBuffer), outLen);
     written += outLen;
+
+    if(isLast) break;
   }
   return written;
 }
@@ -121,52 +136,31 @@ uint64_t encryptFileData(
 
 
 int encrypt(const Config& cfg) {
-
-  if(!cfg.pubPath.empty() && !cfg.secPath.empty()) {
-    std::cout << "Keys found.\n";
-  } else {
-    if(!fs::is_directory(cfg.keysDir)) {
-      std::cout << "Generating keys...\n";
-      keygen(cfg);
-    }
-  }
-
-
   if(sodium_init() != 0) {
     std::cerr << "Error sodium\n";
     return -1;
   }
 
 
-  std::vector<fs::path> files = collectFiles(cfg.file);
-  uint64_t fileCount = files.size();
+  std::vector<InputFile> files = collectFiles(cfg.inputs);
 
   CreatedArchive archive;
-  if(!createArchive(cfg, archive, fileCount)) return -1;
+  if(!createArchive(cfg, archive, files.size())) return -1;
 
-
-  uint64_t nextId   = 0;
-  bool isDirSource  = fs::is_directory(cfg.file);
+  auto bf           = readBitFlags(archive.flags);
   int terminalWidth = getTerminalWidth() - 45;
+  uint64_t nextId   = 0;
 
-  for(const auto& filePath : files) {
+  for(const auto& f : files) {
     FileEntry e;
-    e.id   = nextId++;
-    e.type = EntryType::file;
-
-    if(isDirSource) {
-      e.path = fs::relative(filePath, cfg.file).generic_string();
-    } else {
-      e.path = filePath.filename().generic_string();
-    }
-
-    e.dataSize = fs::file_size(filePath);
+    e.id       = nextId++;
+    e.type     = EntryType::file;
+    e.path     = f.archivePath;
+    e.dataSize = fs::file_size(f.path);
 
     // BITFLAGS
-    auto bf = readBitFlags(archive.flags);
-
-    if(cfg.recordFtime) e.mtime = toUnixTime(fs::last_write_time(filePath));
-    if(cfg.recordAtime) e.mtime = 0;
+    if(cfg.recordFtime) e.mtime = toUnixTime(fs::last_write_time(f.path));
+    else if(cfg.recordAtime) e.mtime = 0;
 
 
 
@@ -179,7 +173,7 @@ int encrypt(const Config& cfg) {
     uint64_t placeholder  = 0;
     archive.file.write(reinterpret_cast<char*>(&placeholder), sizeof placeholder);
 
-    uint64_t encLen = encryptFileData(archive.file, filePath, e.id, archive.streamKey);
+    uint64_t encLen = encryptFileData(archive.file, f.path, e.id, archive.streamKey);
 
     std::streampos afterPos = archive.file.tellp();
     archive.file.seekp(lenPos);
@@ -188,10 +182,10 @@ int encrypt(const Config& cfg) {
 
     
     std::string sign;
-    double percent = (double(e.id) / files.size()) * 100;
+    double percent = (double(e.id + 1) / files.size()) * 100;
 
     std::cout << (cfg.verbose ? "" : "\r\033[K") 
-      << e.id << "/" << files.size() << "(" << std::fixed << std::setprecision(2) << percent << "%) "
+      << e.id + 1 << "/" << files.size() << "(" << std::fixed << std::setprecision(2) << percent << "%) "
       << "Encrypted: " 
       << color::cyan
       << truncateMiddle(e.path, terminalWidth)

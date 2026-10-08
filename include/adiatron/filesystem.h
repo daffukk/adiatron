@@ -53,7 +53,10 @@ bool decryptFileData(
 //  ENCRYPT
 // =================
 
-
+struct InputFile {
+  std::filesystem::path path;
+  std::string archivePath;
+};
 
 struct CreatedArchive {
   std::ofstream file;
@@ -64,7 +67,7 @@ struct CreatedArchive {
 
 bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount);
 
-std::vector<std::filesystem::path> collectFiles(const std::string& file);
+std::vector<InputFile> collectFiles(const std::vector<std::string>& sources);
 
 std::vector<uint8_t> encryptMeta(
     const FileEntry& e, 

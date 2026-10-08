@@ -9,6 +9,7 @@
 #include <sodium/crypto_secretbox.h>
 #include <sodium/randombytes.h>
 #include <sodium/utils.h>
+#include <stdexcept>
 #include <string>
 
 
@@ -131,7 +132,7 @@ bool loadSecretKey(const std::filesystem::path& secPath, unsigned char* secretKe
 // =================
 
 bool openArchive(const Config& cfg, OpenedArchive &out) {
-  out.file.open(cfg.file, std::ios::binary);
+  out.file.open(cfg.archive, std::ios::binary);
   if(!out.file) {
     std::cerr << "Cannot open input file\n";
     return false;
@@ -178,15 +179,16 @@ bool openArchive(const Config& cfg, OpenedArchive &out) {
 
 bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
   std::string filename;
-  if(cfg.filename != "" && cfg.filename.size() > 0) {
+  if(!cfg.filename.empty()) {
     filename = cfg.filename;
   } else {
-    std::filesystem::path p(cfg.file);
+    
+    if(cfg.inputs.size() != 1)
+      throw std::runtime_error("Use -o to name the archive when encrypting multiple inputs");
 
-    if(p.filename().empty()) {
-      p = p.parent_path();
-    }
-    filename = p.string() + ".enc";
+    std::filesystem::path p(cfg.inputs[0]);
+    if(p.filename().empty()) p = p.parent_path(); // "dir/" -> "dir"
+    filename = p.string() + ".aear";
   }
 
   if(std::filesystem::exists(filename)) {
@@ -202,12 +204,6 @@ bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
       std::cout << "Exit.\n";
       return false;
     }
-  }
-
-  out.file.open(filename, std::ios::binary);
-  if(!out.file) {
-    std::cerr << "Cannot create output file.\n";
-    return false;
   }
 
 
@@ -237,6 +233,11 @@ bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
 
   if(!loadSecretKey(secPath, secretKey, cfg.noKeyFormat)) return false;
 
+  out.file.open(filename, std::ios::binary);
+  if(!out.file) {
+    std::cerr << "Cannot create output file.\n";
+    return false;
+  }
 
   crypto_secretstream_xchacha20poly1305_keygen(out.streamKey);
 

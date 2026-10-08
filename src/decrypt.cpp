@@ -144,7 +144,7 @@ int decrypt(const Config& cfg) {
   if(cfg.filename != "" && cfg.filename.size() > 0) {
     outDirName = cfg.filename;
   } else {
-    fs::path p(cfg.file);
+    fs::path p(cfg.archive);
 
     if(p.filename().empty()) {
       p = p.parent_path();
@@ -196,10 +196,10 @@ int decrypt(const Config& cfg) {
     if(bf.Ftime) fs::last_write_time(outPath, fromUnixTime(e.mtime));
 
     std::string sign;
-    double percent = (double(e.id) / archive.fileCount) * 100;
+    double percent = (double(e.id + 1) / archive.fileCount) * 100;
 
     std::cout << (cfg.verbose ? "" : "\r\033[K") 
-      << e.id << "/" << archive.fileCount << "(" << std::fixed << std::setprecision(2) << percent << "%) "
+      << e.id + 1 << "/" << archive.fileCount << "(" << std::fixed << std::setprecision(2) << percent << "%) "
       << "Decrypted: " 
       << color::cyan
       << truncateMiddle(e.path, terminalWidth)

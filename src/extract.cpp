@@ -2,7 +2,9 @@
 #include <adiatron/terminal.h>
 #include <adiatron/config.h>
 #include <adiatron/utils.h>
+#include <algorithm>
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 
 
@@ -24,16 +26,17 @@ namespace fs = std::filesystem;
   BitFlags bf = readBitFlags(archive.flags);
 
 
-  if(archive.fileCount + 1 < cfg.fileId) {
-    std::cout << "Id out of range\n";
-    return -1;
+  for(auto i : cfg.ids) {
+    if(archive.fileCount + 1 < i) {
+      throw std::runtime_error("Id out of range");
+    }
   }
 
   std::string outDirName;
   if(cfg.filename != "" && cfg.filename.size() > 0) {
     outDirName = cfg.filename;
   } else {
-    fs::path p(cfg.file);
+    fs::path p(cfg.archive);
 
     if(p.filename().empty()) {
       p = p.parent_path();
@@ -42,7 +45,7 @@ namespace fs = std::filesystem;
   }
   fs::create_directories(outDirName);
 
-
+  uint64_t done=0;
   for(uint64_t i=0; i < archive.fileCount; i++) {
     uint64_t metaLen = 0;
     archive.file.read(reinterpret_cast<char*>(&metaLen), sizeof metaLen);
@@ -71,7 +74,7 @@ namespace fs = std::filesystem;
       return -1;
     }
 
-    if(e.id == cfg.fileId) {
+    if(std::find(cfg.ids.begin(), cfg.ids.end(), e.id) != cfg.ids.end()) {
       std::string sign;
       std::cout << "File found. Decrypting...\n";
       std::cout << e.id << "  " << e.path << " (" << convertBytes(e.dataSize, sign) << sign << ")\n";
@@ -85,11 +88,11 @@ namespace fs = std::filesystem;
 
       if(bf.Ftime) fs::last_write_time(outPath, fromUnixTime(e.mtime));
 
-
-      break;
+      ++done;
+      if(done == cfg.ids.size()) break;
+    } else{
+      archive.file.seekg(dataLen, std::ios::cur);
     }
-
-    archive.file.seekg(dataLen, std::ios::cur);
   }
 
 

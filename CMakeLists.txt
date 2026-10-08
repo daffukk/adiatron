@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(adiatron)
+project(adiatron VERSION 1.1.8 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,5 +20,10 @@ add_executable(${PROJECT_NAME}
   src/extract.cpp
   src/add.cpp
 )
+
+target_compile_definitions(adiatron PRIVATE
+  ADIATRON_VERSION="${PROJECT_VERSION}"
+)
+
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${SODIUM_LIBRARY})
