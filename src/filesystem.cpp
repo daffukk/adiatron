@@ -132,7 +132,7 @@ bool loadSecretKey(const std::filesystem::path& secPath, unsigned char* secretKe
 // =================
 
 bool openArchive(const Config& cfg, OpenedArchive &out) {
-  out.file.open(cfg.file, std::ios::binary);
+  out.file.open(cfg.archive, std::ios::binary);
   if(!out.file) {
     std::cerr << "Cannot open input file\n";
     return false;
@@ -183,10 +183,10 @@ bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
     filename = cfg.filename;
   } else {
     
-    if(cfg.files.size() != 1)
+    if(cfg.inputs.size() != 1)
       throw std::runtime_error("Use -o to name the archive when encrypting multiple inputs");
 
-    std::filesystem::path p(cfg.files[0]);
+    std::filesystem::path p(cfg.inputs[0]);
     if(p.filename().empty()) p = p.parent_path(); // "dir/" -> "dir"
     filename = p.string() + ".aear";
   }

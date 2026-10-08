@@ -20,11 +20,10 @@ constexpr uint64_t TiB = 1ULL << 40;
 struct Config {
   std::string mode;
 
-  std::string file;
-  std::vector<std::string> files;
+  std::string archive;
+  std::vector<std::string> inputs; // input files (encrypt/add)
+  std::vector<uint64_t> ids;
   std::string filename = "";
-  std::string target;
-  uint64_t fileId;
 
   std::string keysDir = "keys";
   std::string pubPath= "";

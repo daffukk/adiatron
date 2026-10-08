@@ -142,7 +142,7 @@ int encrypt(const Config& cfg) {
   }
 
 
-  std::vector<InputFile> files = collectFiles(cfg.files);
+  std::vector<InputFile> files = collectFiles(cfg.inputs);
 
   CreatedArchive archive;
   if(!createArchive(cfg, archive, files.size())) return -1;

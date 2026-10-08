@@ -13,7 +13,6 @@ Config parseArgs(int argc, char** argv) {
   Config cfg;
   std::vector<std::string> args(argv+1, argv+argc);
   std::vector<std::string> pos; 
-  std::vector<std::string> files;
 
   for(size_t i=0; i < args.size(); ++i) {
     std::string a = args[i];
@@ -73,7 +72,7 @@ Config parseArgs(int argc, char** argv) {
   
   if     (cfg.mode == "keygen") { minArgs = 0; maxArgs = 0; }
   else if(cfg.mode == "extract" || cfg.mode == "add") 
-    { minArgs = 2; maxArgs = 2; }
+    { minArgs = 2; maxArgs = SIZE_MAX; }
   else if(cfg.mode == "encrypt") { minArgs = 1; maxArgs = SIZE_MAX; }
   else if(cfg.mode == "decrypt" || cfg.mode == "list") 
     { minArgs = 1; maxArgs = 1; }
@@ -86,16 +85,28 @@ Config parseArgs(int argc, char** argv) {
   if(pos.size() - 1 > maxArgs)
     throw std::runtime_error("Too many arguments for " + cfg.mode);
 
+  // every mode aside those is using archive as first positional
+  if(cfg.mode != "encrypt" && cfg.mode != "keygen") 
+    cfg.archive = pos[1];
   
-  if(cfg.mode == "encrypt") {
-    cfg.files.assign(pos.begin() + 1, pos.end()); // all files
-  } else if(minArgs >= 1) {
-    cfg.file = pos[1];
+  if(cfg.mode == "encrypt")
+    cfg.inputs.assign(pos.begin() + 1, pos.end()); // all files
+  else if(cfg.mode == "add")
+    cfg.inputs.assign(pos.begin() + 2, pos.end());
+
+
+  if(cfg.mode == "extract") {
+    for(size_t k=2; k < pos.size(); ++k) {
+      try {
+        size_t used;
+        cfg.ids.push_back(std::stoull(pos[k], &used));
+        if(used != pos[k].size()) throw std::invalid_argument(""); // needs because stoull("33df") will 
+                                                                   // silently return 33
+      } catch(...) {
+        throw std::runtime_error("FileID must be a number: " + pos[k]);
+      }
+    }
   }
-
-
-  if(cfg.mode == "extract") cfg.fileId = std::stoi(pos[2]);
-  if(cfg.mode == "add")     cfg.target = pos[2];
 
   if((cfg.recordFtime || cfg.recordAtime) && (cfg.mode != "encrypt" || cfg.mode != "add"))
     throw std::runtime_error("--atime/--ftime only work with add or encrypt modes");

@@ -44,7 +44,7 @@ namespace fs=std::filesystem;
   }
 
 
-  std::vector<InputFile> newFiles = collectFiles({cfg.target});
+  std::vector<InputFile> newFiles = collectFiles(cfg.inputs);
   uint64_t newFileCount = newFiles.size();
 
   OpenedArchive archive;
@@ -55,7 +55,7 @@ namespace fs=std::filesystem;
 
   int terminalWidth = getTerminalWidth() - 40;
 
-  std::fstream appendFile(cfg.file, std::ios::binary | std::ios::in | std::ios::out); // open second stream for append 
+  std::fstream appendFile(cfg.archive, std::ios::binary | std::ios::in | std::ios::out); // open second stream for append 
   if(!appendFile) {
     std::cerr << "Failed to open archive\n";
     return -1;
@@ -119,12 +119,12 @@ namespace fs=std::filesystem;
   
   } catch(...) {
     appendFile.close();
-    fs::resize_file(cfg.file, originalSize);
+    fs::resize_file(cfg.archive, originalSize);
     throw;
   }
 
 
-  if(!updateFileCount(cfg.file, archive.fileCount + newFileCount)) {
+  if(!updateFileCount(cfg.archive, archive.fileCount + newFileCount)) {
     std::cerr << "Warning: files were added, but file count could not be updated\n";
     return -1;
   } // third and last stream, updating filecount.

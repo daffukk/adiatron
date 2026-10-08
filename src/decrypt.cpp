@@ -144,7 +144,7 @@ int decrypt(const Config& cfg) {
   if(cfg.filename != "" && cfg.filename.size() > 0) {
     outDirName = cfg.filename;
   } else {
-    fs::path p(cfg.file);
+    fs::path p(cfg.archive);
 
     if(p.filename().empty()) {
       p = p.parent_path();
