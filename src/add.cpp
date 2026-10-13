@@ -2,6 +2,7 @@
 #include <adiatron/terminal.h>
 #include <adiatron/config.h>
 #include <adiatron/utils.h>
+#include <algorithm>
 #include <cstdint>
 #include <fstream>
 #include <ios>
@@ -29,6 +30,31 @@ bool updateFileCount(const std::string& file, uint64_t newFileCount) {
   f.write(reinterpret_cast<char*>(&newFileCount), sizeof newFileCount);
 
   return true;
+}
+
+
+
+std::string sanitizeAddPath(std::string p) {
+  std::replace(p.begin(), p.end(), '\\', '/');
+
+  while(!p.empty() && p.front() == '/')
+    p.erase(p.begin());
+
+  std::filesystem::path input(p);
+  std::filesystem::path result;
+
+  for(const auto& component : input) {
+    std::string part = component.string();
+
+    if(part.empty() || part == "." || part == ".." || part == "~")
+      continue;
+
+    if(part.find(':') != std::string::npos)
+      continue;
+    result /= component;
+  }
+
+  return result.generic_string();
 }
 
 
@@ -63,6 +89,7 @@ namespace fs=std::filesystem;
 
   appendFile.seekp(0, std::ios::end);
   const std::streamoff originalSize = appendFile.tellp();
+  const auto destp = sanitizeAddPath(cfg.destPath);
 
   try {
     uint64_t nextId   = archive.fileCount;
@@ -72,7 +99,7 @@ namespace fs=std::filesystem;
       FileEntry e;
       e.id       = nextId++;
       e.type     = EntryType::file;
-      e.path     = f.archivePath;
+      e.path     = destp + f.archivePath;
       e.dataSize = fs::file_size(f.path);
 
       // BITFLAGS

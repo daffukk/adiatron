@@ -105,13 +105,14 @@ adiatron keygen --passphrase
 --keydir DIR         Override keys directory (default: "keys")
 --pkey PATH          Explicit public key path
 --skey PATH          Explicit secret key path
+--dest PATH          Point path in archive you want to add your files to("add" mode only)
 --nokeyformat        Skip key format validation (raw bytes only)
 ```
 ## Roadmap
 
 - [ ] Encrypt `fileCount` and `bitFlags` with `boxedKey` or something
 - [ ] Add one extra bit integer to header to store something in further versions and don't break version capability 
-- [ ] Filepath to add files inside archive
+- [X] Filepath to add files inside archive
 - [ ] Symlink and hardlink support
 - [ ] `crypto_pwhash_OPSLIMIT`, `crypto_pwhash_MEMLIMIT` and `crypto_pwhash_ALG` flags for lower/higher encryption power(for example ``--maxmem``).
 - [ ] Dividing encrypted file to volumes(e.g. `encrypted.aear.0001`, `encrypted.aear.0002`) by using `--volume` or `--vol-size` flags

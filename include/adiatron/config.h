@@ -24,6 +24,7 @@ struct Config {
   std::vector<std::string> inputs; // input files (encrypt/add)
   std::vector<uint64_t> ids;
   std::string filename = "";
+  std::string destPath = "";
 
   std::string keysDir = "keys";
   std::string pubPath= "";
