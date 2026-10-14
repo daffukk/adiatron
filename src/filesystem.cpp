@@ -131,6 +131,49 @@ bool loadSecretKey(const std::filesystem::path& secPath, unsigned char* secretKe
 //  ARCHIVE
 // =================
 
+bool encryptFileCount(std::ostream& f, uint64_t fileCount, const unsigned char* streamKey) {
+  unsigned char countKey[crypto_secretbox_KEYBYTES];
+  crypto_kdf_derive_from_key(countKey, sizeof countKey, 0, "FILECONT", streamKey);
+
+  unsigned char nonce[crypto_secretbox_NONCEBYTES];
+  randombytes_buf(nonce, sizeof nonce);
+
+  unsigned char enc[crypto_secretbox_MACBYTES + sizeof fileCount];
+  crypto_secretbox_easy(enc, reinterpret_cast<const unsigned char*>(&fileCount),
+                        sizeof fileCount, nonce, countKey);
+  sodium_memzero(countKey, sizeof countKey);
+
+  f.write(reinterpret_cast<char*>(nonce), sizeof nonce);
+  f.write(reinterpret_cast<char*>(enc), sizeof enc);
+  return static_cast<bool>(f);
+}
+
+bool decryptFileCount(std::istream& f, uint64_t& fileCount, const unsigned char* streamKey) {
+  unsigned char nonce[crypto_secretbox_NONCEBYTES];
+  unsigned char enc[crypto_secretbox_MACBYTES + sizeof fileCount];
+
+  f.read(reinterpret_cast<char*>(nonce), sizeof nonce);
+  f.read(reinterpret_cast<char*>(enc), sizeof enc);
+  if(!f) {
+    std::cerr << "Failed to read file count, archive may be corrupted\n";
+    return false;
+  }
+
+  unsigned char countKey[crypto_secretbox_KEYBYTES];
+  crypto_kdf_derive_from_key(countKey, sizeof countKey, 0, "FILECONT", streamKey);
+
+  int rc = crypto_secretbox_open_easy(reinterpret_cast<unsigned char*>(&fileCount),
+                                      enc, sizeof enc, nonce, countKey);
+  sodium_memzero(countKey, sizeof countKey);
+  if(rc != 0) {
+    std::cerr << "Failed to decrypt fileCount.\n";
+    return false;
+  }
+  return true;
+}
+
+
+
 bool openArchive(const Config& cfg, OpenedArchive &out) {
   out.file.open(cfg.archive, std::ios::binary);
   if(!out.file) {
@@ -168,11 +211,7 @@ bool openArchive(const Config& cfg, OpenedArchive &out) {
 
   out.file.read(reinterpret_cast<char*>(&out.flags), sizeof out.flags);
 
-  out.file.read(reinterpret_cast<char*>(&out.fileCount), sizeof out.fileCount);
-  if(out.file.gcount() != static_cast<std::streamsize>(sizeof out.fileCount)) {
-    std::cerr << "Failed to read file count, archive may be corrupted\n";
-    return false;
-  }
+  if(!decryptFileCount(out.file, out.fileCount, out.streamKey)) return false;
 
   return true;
 }
@@ -261,7 +300,7 @@ bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
   out.flags = writeBitFlags(cfg);
   out.file.write(reinterpret_cast<char*>(&out.flags), sizeof out.flags);
 
-  out.file.write(reinterpret_cast<char*>(&fileCount), sizeof fileCount);
+  if(!encryptFileCount(out.file, fileCount, out.streamKey)) return false;
 
   return true;
 }

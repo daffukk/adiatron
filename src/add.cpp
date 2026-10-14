@@ -14,7 +14,8 @@
 
 
 
-bool updateFileCount(const std::string& file, uint64_t newFileCount) {
+bool updateFileCount(const std::string& file, uint64_t newFileCount,
+                     const unsigned char* streamKey) {
   std::fstream f(file, std::ios::binary | std::ios::in | std::ios::out);
   if(!f) {
     std::cerr << "Failed to reopen archive for updating file count\n";
@@ -27,9 +28,7 @@ bool updateFileCount(const std::string& file, uint64_t newFileCount) {
     sizeof(OpenedArchive::flags);
 
   f.seekp(FILE_COUNT_OFFSET);
-  f.write(reinterpret_cast<char*>(&newFileCount), sizeof newFileCount);
-
-  return true;
+  return encryptFileCount(f, newFileCount, streamKey);
 }
 
 
@@ -151,7 +150,7 @@ namespace fs=std::filesystem;
   }
 
 
-  if(!updateFileCount(cfg.archive, archive.fileCount + newFileCount)) {
+  if(!updateFileCount(cfg.archive, archive.fileCount + newFileCount, archive.streamKey)) {
     std::cerr << "Warning: files were added, but file count could not be updated\n";
     return -1;
   } // third and last stream, updating filecount.
