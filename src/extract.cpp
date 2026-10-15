@@ -45,6 +45,7 @@ namespace fs = std::filesystem;
   }
   fs::create_directories(outDirName);
 
+  int terminalWidth = getTerminalWidth() - 45;
   uint64_t done=0;
   for(uint64_t i=0; i < archive.fileCount; i++) {
     uint64_t metaLen = 0;
@@ -76,8 +77,14 @@ namespace fs = std::filesystem;
 
     if(std::find(cfg.ids.begin(), cfg.ids.end(), e.id) != cfg.ids.end()) {
       std::string sign;
-      std::cout << "File found. Decrypting...\n";
-      std::cout << e.id << "  " << e.path << " (" << convertBytes(e.dataSize, sign) << sign << ")\n";
+      std::cout << (cfg.verbose ? "" : "\r\033[K")
+        << e.id << "  " 
+        << color::cyan
+        << truncateMiddle(e.path, terminalWidth)
+        << color::yellow
+        << " (" << convertBytes(e.dataSize, sign) << sign << ")"
+        << color::reset;
+      cfg.verbose ? std::cout << "\n" : std::cout << std::flush;
       
 
       fs::path outPath = fs::path(outDirName) / e.path;
