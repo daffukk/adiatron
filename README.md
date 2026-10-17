@@ -110,7 +110,7 @@ adiatron keygen --passphrase
 ```
 ## Roadmap
 
-- [ ] Encrypt `fileCount` and `bitFlags` with `boxedKey` or something
+- [x] Encrypt `fileCount` and `bitFlags` with `boxedKey` or something
 - [ ] Add one extra bit integer to header to store something in further versions and don't break version capability 
 - [X] Filepath to add files inside archive
 - [ ] Symlink and hardlink support

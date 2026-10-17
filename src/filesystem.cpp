@@ -6,6 +6,7 @@
 #include <iostream>
 #include <ios>
 #include <sodium/crypto_box.h>
+#include <sodium/crypto_kdf.h>
 #include <sodium/crypto_secretbox.h>
 #include <sodium/randombytes.h>
 #include <sodium/utils.h>
@@ -131,7 +132,7 @@ bool loadSecretKey(const std::filesystem::path& secPath, unsigned char* secretKe
 //  ARCHIVE
 // =================
 
-bool encryptFileCount(std::ostream& f, uint64_t fileCount, const unsigned char* streamKey) {
+bool encryptFileCount(std::ostream& f, const unsigned char* streamKey, uint64_t fileCount) {
   unsigned char countKey[crypto_secretbox_KEYBYTES];
   crypto_kdf_derive_from_key(countKey, sizeof countKey, 0, "FILECONT", streamKey);
 
@@ -148,7 +149,7 @@ bool encryptFileCount(std::ostream& f, uint64_t fileCount, const unsigned char* 
   return static_cast<bool>(f);
 }
 
-bool decryptFileCount(std::istream& f, uint64_t& fileCount, const unsigned char* streamKey) {
+bool decryptFileCount(std::istream& f, const unsigned char* streamKey, uint64_t& fileCount) {
   unsigned char nonce[crypto_secretbox_NONCEBYTES];
   unsigned char enc[crypto_secretbox_MACBYTES + sizeof fileCount];
 
@@ -167,6 +168,50 @@ bool decryptFileCount(std::istream& f, uint64_t& fileCount, const unsigned char*
   sodium_memzero(countKey, sizeof countKey);
   if(rc != 0) {
     std::cerr << "Failed to decrypt fileCount.\n";
+    return false;
+  }
+  return true;
+}
+
+
+
+bool encryptBitFlags(std::ostream &f, const unsigned char* streamKey, const Config &cfg) {
+  uint64_t flags = writeBitFlags(cfg);
+  unsigned char bfKey[crypto_secretbox_KEYBYTES];
+  crypto_kdf_derive_from_key(bfKey, sizeof bfKey, 0, "FLAGSKEY", streamKey);
+
+  unsigned char nonce[crypto_secretbox_NONCEBYTES];
+  randombytes_buf(nonce, sizeof nonce);
+
+  unsigned char enc[crypto_secretbox_MACBYTES + sizeof flags];
+  crypto_secretbox_easy(enc, reinterpret_cast<const unsigned char*>(&flags),
+                        sizeof flags, nonce, bfKey);
+  sodium_memzero(bfKey, sizeof bfKey);
+
+  f.write(reinterpret_cast<char*>(nonce), sizeof nonce);
+  f.write(reinterpret_cast<char*>(enc), sizeof enc);
+  return static_cast<bool>(f);
+}
+
+bool decryptBitFlags(std::ifstream &f, const unsigned char* streamKey, uint64_t &bf) {
+  unsigned char nonce[crypto_secretbox_NONCEBYTES];
+  unsigned char enc[crypto_secretbox_MACBYTES + sizeof bf];
+
+  f.read(reinterpret_cast<char*>(nonce), sizeof nonce);
+  f.read(reinterpret_cast<char*>(enc), sizeof enc);
+  if(!f) {
+    std::cerr << "Failed to read bit flags, archive may be corrupted.\n";
+    return false;
+  }
+
+  unsigned char bfKey[crypto_secretbox_KEYBYTES];
+  crypto_kdf_derive_from_key(bfKey, sizeof bfKey, 0, "FLAGSKEY", streamKey);
+
+  int rc = crypto_secretbox_open_easy(reinterpret_cast<unsigned char*>(&bf),
+                                      enc, sizeof enc, nonce, bfKey);
+  sodium_memzero(bfKey, sizeof bfKey);
+  if(rc != 0) {
+    std::cerr << "Failed to decrypt bit flags.\n";
     return false;
   }
   return true;
@@ -209,9 +254,8 @@ bool openArchive(const Config& cfg, OpenedArchive &out) {
 
   sodium_memzero(secretKey, sizeof secretKey);
 
-  out.file.read(reinterpret_cast<char*>(&out.flags), sizeof out.flags);
-
-  if(!decryptFileCount(out.file, out.fileCount, out.streamKey)) return false;
+  if(!decryptBitFlags(out.file, out.streamKey, out.fileCount)) return false;
+  if(!decryptFileCount(out.file, out.streamKey, out.fileCount)) return false;
 
   return true;
 }
@@ -298,9 +342,8 @@ bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
 
 
   out.flags = writeBitFlags(cfg);
-  out.file.write(reinterpret_cast<char*>(&out.flags), sizeof out.flags);
-
-  if(!encryptFileCount(out.file, fileCount, out.streamKey)) return false;
+  if(!encryptBitFlags(out.file, out.streamKey, cfg)) return false;
+  if(!encryptFileCount(out.file, out.streamKey, fileCount)) return false;
 
   return true;
 }

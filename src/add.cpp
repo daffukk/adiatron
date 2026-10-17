@@ -28,7 +28,7 @@ bool updateFileCount(const std::string& file, uint64_t newFileCount,
     sizeof(OpenedArchive::flags);
 
   f.seekp(FILE_COUNT_OFFSET);
-  return encryptFileCount(f, newFileCount, streamKey);
+  return encryptFileCount(f, streamKey, newFileCount);
 }
 
 
