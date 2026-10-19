@@ -106,6 +106,7 @@ adiatron keygen --passphrase
 --pkey PATH          Explicit public key path
 --skey PATH          Explicit secret key path
 --dest PATH          Point path in archive you want to add your files to("add" mode only)
+--plain-count        Disable encryption/decryption of file count
 --nokeyformat        Skip key format validation (raw bytes only)
 ```
 ## Roadmap

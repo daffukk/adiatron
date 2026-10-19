@@ -25,6 +25,7 @@ struct Config {
   std::vector<uint64_t> ids;
   std::string filename = "";
   std::string destPath = "";
+  bool plainCount = false; // disable filecount encryption/decryption
 
   std::string keysDir = "keys";
   std::string pubPath= "";
