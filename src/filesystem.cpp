@@ -254,7 +254,11 @@ bool openArchive(const Config& cfg, OpenedArchive &out) {
 
   sodium_memzero(secretKey, sizeof secretKey);
 
-  if(!decryptBitFlags(out.file, out.streamKey, out.fileCount)) return false;
+  if(cfg.plainBF)
+    out.file.read(reinterpret_cast<char*>(&out.flags), sizeof out.flags);
+  else
+    if(!decryptBitFlags(out.file, out.streamKey, out.fileCount)) return false;
+
   if(cfg.plainCount)
     out.file.read(reinterpret_cast<char*>(&out.fileCount), sizeof out.fileCount);
   else
@@ -345,7 +349,12 @@ bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
 
 
   out.flags = writeBitFlags(cfg);
-  if(!encryptBitFlags(out.file, out.streamKey, cfg)) return false;
+
+  if(cfg.plainBF)
+    out.file.write(reinterpret_cast<char*>(&out.flags), sizeof out.flags);
+  else
+    if(!encryptBitFlags(out.file, out.streamKey, cfg)) return false;
+
   if(cfg.plainCount)
     out.file.write(reinterpret_cast<char*>(&fileCount), sizeof fileCount);
   else

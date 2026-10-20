@@ -26,6 +26,7 @@ struct Config {
   std::string filename = "";
   std::string destPath = "";
   bool plainCount = false; // disable filecount encryption/decryption
+  bool plainBF = false;
 
   std::string keysDir = "keys";
   std::string pubPath= "";

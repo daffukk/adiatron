@@ -43,6 +43,7 @@ inline void printHelp(int argc, char* argv[]) {
     << "\t-o, --filename \t\t Specify an output filename.\n"
     << "\t--dest \t\t Specify the path in archive you want to add your files to. Available only in \"add\" mode.\n"
     << "\t--plain-count \t\t Disable encryption/decryption of file count. (old versions compability)\n"
+    << "\t--plain-bitflags \t Disable encryption/decryption of bit flags. (old versions compability)\n"
     << "\t--ftime \t\t Preserves the original file modification time when decrypting. Available only in encryption mode.\n"
     << "\t--atime \t\t Does the same thing as --ftime, but filetime is 1970-01-01 00:00:00 UTC for every file. Available only in encryption mode.\n"
     << "\t--nokeyformat \t\t Do not check or add format of the secret key. With this flag any bytes could be secret key. Note that this flag does not work with encrypted keys.\n"

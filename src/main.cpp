@@ -55,6 +55,7 @@ Config parseArgs(int argc, char** argv) {
     else if(a == "--dest")                  cfg.destPath = value();
     else if(a == "-v" || a == "--verbose")  cfg.verbose = true;
     else if(a == "--plain-count")           cfg.plainCount = true;
+    else if(a == "--plain-bitflags")        cfg.plainBF = true;
     else if(a == "-p" || a == "--passphrase") cfg.usePassphrase = true;
     else if(a == "--nokeyformat")           cfg.noKeyFormat = true;
     else if(a == "--atime")                 cfg.recordAtime = true;
