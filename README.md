@@ -96,20 +96,22 @@ adiatron keygen --passphrase
 
 #### Common Options
 
-```bash
--p, --passphrase     Encrypt secret key with passphrase
--v, --verbose        Show per-file progress
--o, --filename PATH  Custom output filename
---ftime              Preserve original file modification times
---atime              Set mtime to epoch (1970-01-01)
---keydir DIR         Override keys directory (default: "keys")
---pkey PATH          Explicit public key path
---skey PATH          Explicit secret key path
---dest PATH          Point path in archive you want to add your files to("add" mode only)
---plain-count        Disable encryption/decryption of file count
---plain-bitflags     Disable encryption/decryption of bit flags
---nokeyformat        Skip key format validation (raw bytes only)
-```
+
+| Short option | Long option           | Description                                              |
+|--------------|-----------------------|----------------------------------------------------------|
+| `-p`         | `--passphrase`        | Encrypt secret key with passphrase                       |
+| `-v`         | `--verbose`           | Show per-file progress                                  |
+| `-o`         | `--filename PATH`     | Custom output filename                                  |
+| None         | `--ftime`             | Preserve original file modification times               |
+| None         | `--atime`             | Set mtime to epoch (1970-01-01)                         |
+| None         | `--keydir DIR`        | Override keys directory (default: "keys")               |
+| None         | `--pkey PATH`         | Explicit public key path                                |
+| None         | `--skey PATH`         | Explicit secret key path                                |
+| None         | `--dest PATH`         | Point path in archive you want to add your files to ("add" mode only) |
+| None         | `--plain-count`       | Disable encryption/decryption of file count              |
+| None         | `--plain-bitflags`    | Disable encryption/decryption of bit flags               |
+| None         | `--nokeyformat`       | Skip key format validation (raw bytes only)             |
+
 ## Roadmap
 
 - [x] Encrypt `fileCount` and `bitFlags` with `boxedKey` or something
