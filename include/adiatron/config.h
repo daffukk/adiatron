@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <sodium/crypto_secretbox.h>
 #include <string>
 #include <vector>
 
@@ -12,6 +13,11 @@ constexpr uint64_t KiB = 1ULL << 10;
 constexpr uint64_t MiB = 1ULL << 20;
 constexpr uint64_t GiB = 1ULL << 30;
 constexpr uint64_t TiB = 1ULL << 40;
+
+constexpr size_t ENC_U64_SIZE =
+  crypto_secretbox_NONCEBYTES +
+  crypto_secretbox_MACBYTES + 
+  sizeof(uint64_t); // 48
 
 // =================
 //  CONFIG

@@ -2,6 +2,8 @@
 #include <adiatron/filesystem.h>
 #include <adiatron/commands.h>
 #include <adiatron/terminal.h>
+#include <adiatron/config.h>
+#include <cstdint>
 #include <filesystem>
 #include <iostream>
 #include <ios>
@@ -132,90 +134,39 @@ bool loadSecretKey(const std::filesystem::path& secPath, unsigned char* secretKe
 //  ARCHIVE
 // =================
 
-bool encryptFileCount(std::ostream& f, const unsigned char* streamKey, uint64_t fileCount) {
-  unsigned char countKey[crypto_secretbox_KEYBYTES];
-  crypto_kdf_derive_from_key(countKey, sizeof countKey, 0, "FILECONT", streamKey);
+bool writeEncU64(std::ostream& f, uint64_t v,
+                 const unsigned char* streamKey,
+                 const char (&ctx)[9], uint64_t subkeyId) { // const char (&ctx)[9] forces compiler
+                                                            // to check whether context 8 symbols(+\0) or not
+  unsigned char key[crypto_secretbox_KEYBYTES];
+  crypto_kdf_derive_from_key(key, sizeof key, subkeyId, ctx, streamKey);
 
-  unsigned char nonce[crypto_secretbox_NONCEBYTES];
-  randombytes_buf(nonce, sizeof nonce);
+  unsigned char buf[ENC_U64_SIZE];
+  randombytes_buf(buf, crypto_secretbox_NONCEBYTES);
+  crypto_secretbox_easy(buf + crypto_secretbox_NONCEBYTES,
+                        reinterpret_cast<const unsigned char*>(&v), sizeof v,
+                        buf, key);
+  sodium_memzero(key, sizeof key);
 
-  unsigned char enc[crypto_secretbox_MACBYTES + sizeof fileCount];
-  crypto_secretbox_easy(enc, reinterpret_cast<const unsigned char*>(&fileCount),
-                        sizeof fileCount, nonce, countKey);
-  sodium_memzero(countKey, sizeof countKey);
-
-  f.write(reinterpret_cast<char*>(nonce), sizeof nonce);
-  f.write(reinterpret_cast<char*>(enc), sizeof enc);
+  f.write(reinterpret_cast<char*>(buf), sizeof buf);
   return static_cast<bool>(f);
 }
 
-bool decryptFileCount(std::istream& f, const unsigned char* streamKey, uint64_t& fileCount) {
-  unsigned char nonce[crypto_secretbox_NONCEBYTES];
-  unsigned char enc[crypto_secretbox_MACBYTES + sizeof fileCount];
+bool readEncU64(std::istream& f, uint64_t& v,
+                const unsigned char* streamKey,
+                const char (&ctx)[9], uint64_t subkeyId = 0) {
+  unsigned char buf[ENC_U64_SIZE];
+  f.read(reinterpret_cast<char*>(buf), sizeof buf);
+  if(!f) return false;
 
-  f.read(reinterpret_cast<char*>(nonce), sizeof nonce);
-  f.read(reinterpret_cast<char*>(enc), sizeof enc);
-  if(!f) {
-    std::cerr << "Failed to read file count, archive may be corrupted\n";
-    return false;
-  }
-
-  unsigned char countKey[crypto_secretbox_KEYBYTES];
-  crypto_kdf_derive_from_key(countKey, sizeof countKey, 0, "FILECONT", streamKey);
-
-  int rc = crypto_secretbox_open_easy(reinterpret_cast<unsigned char*>(&fileCount),
-                                      enc, sizeof enc, nonce, countKey);
-  sodium_memzero(countKey, sizeof countKey);
-  if(rc != 0) {
-    std::cerr << "Failed to decrypt fileCount.\n";
-    return false;
-  }
-  return true;
-}
-
-
-
-bool encryptBitFlags(std::ostream &f, const unsigned char* streamKey, const Config &cfg) {
-  uint64_t flags = writeBitFlags(cfg);
-  unsigned char bfKey[crypto_secretbox_KEYBYTES];
-  crypto_kdf_derive_from_key(bfKey, sizeof bfKey, 0, "FLAGSKEY", streamKey);
-
-  unsigned char nonce[crypto_secretbox_NONCEBYTES];
-  randombytes_buf(nonce, sizeof nonce);
-
-  unsigned char enc[crypto_secretbox_MACBYTES + sizeof flags];
-  crypto_secretbox_easy(enc, reinterpret_cast<const unsigned char*>(&flags),
-                        sizeof flags, nonce, bfKey);
-  sodium_memzero(bfKey, sizeof bfKey);
-
-  f.write(reinterpret_cast<char*>(nonce), sizeof nonce);
-  f.write(reinterpret_cast<char*>(enc), sizeof enc);
-  return static_cast<bool>(f);
-}
-
-bool decryptBitFlags(std::ifstream &f, const unsigned char* streamKey, uint64_t &bf) {
-  unsigned char nonce[crypto_secretbox_NONCEBYTES];
-  unsigned char enc[crypto_secretbox_MACBYTES + sizeof bf];
-
-  f.read(reinterpret_cast<char*>(nonce), sizeof nonce);
-  f.read(reinterpret_cast<char*>(enc), sizeof enc);
-  if(!f) {
-    std::cerr << "Failed to read bit flags, archive may be corrupted.\n";
-    return false;
-  }
-
-  unsigned char bfKey[crypto_secretbox_KEYBYTES];
-  crypto_kdf_derive_from_key(bfKey, sizeof bfKey, 0, "FLAGSKEY", streamKey);
-
-  int rc = crypto_secretbox_open_easy(reinterpret_cast<unsigned char*>(&bf),
-                                      enc, sizeof enc, nonce, bfKey);
-  sodium_memzero(bfKey, sizeof bfKey);
-  if(rc != 0) {
-    std::cerr << "Failed to decrypt bit flags.\n";
-    return false;
-  }
-  return true;
-}
+  unsigned char key[crypto_secretbox_KEYBYTES];
+  crypto_kdf_derive_from_key(key, sizeof key, subkeyId, ctx, streamKey);
+  int rc = crypto_secretbox_open_easy(reinterpret_cast<unsigned char*>(&v),
+                                      buf + crypto_secretbox_NONCEBYTES,
+                                      sizeof buf - crypto_secretbox_NONCEBYTES, buf, key);
+  sodium_memzero(key, sizeof key);
+  return rc == 0;
+}  
 
 
 
@@ -257,12 +208,12 @@ bool openArchive(const Config& cfg, OpenedArchive &out) {
   if(cfg.plainBF)
     out.file.read(reinterpret_cast<char*>(&out.flags), sizeof out.flags);
   else
-    if(!decryptBitFlags(out.file, out.streamKey, out.fileCount)) return false;
+    if(!readEncU64(out.file, out.flags, out.streamKey, "FLAGSKEY")) return false;
 
   if(cfg.plainCount)
     out.file.read(reinterpret_cast<char*>(&out.fileCount), sizeof out.fileCount);
   else
-    if(!decryptFileCount(out.file, out.streamKey, out.fileCount)) return false;
+    if(!readEncU64(out.file, out.fileCount, out.streamKey, "FILECONT")) return false;
 
   return true;
 }
@@ -353,12 +304,12 @@ bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
   if(cfg.plainBF)
     out.file.write(reinterpret_cast<char*>(&out.flags), sizeof out.flags);
   else
-    if(!encryptBitFlags(out.file, out.streamKey, cfg)) return false;
+    if(!writeEncU64(out.file, out.flags, out.streamKey, "FLAGSKEY")) return false;
 
   if(cfg.plainCount)
     out.file.write(reinterpret_cast<char*>(&fileCount), sizeof fileCount);
   else
-    if(!encryptFileCount(out.file, out.streamKey, fileCount)) return false;
+    if(!writeEncU64(out.file, fileCount, out.streamKey, "FILECONT")) return false;
 
   return true;
 }

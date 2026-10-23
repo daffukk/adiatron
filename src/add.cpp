@@ -25,10 +25,10 @@ bool updateFileCount(const std::string& file, uint64_t newFileCount,
   constexpr std::streamoff FILE_COUNT_OFFSET =
     crypto_secretbox_NONCEBYTES +
     (crypto_secretbox_MACBYTES + crypto_secretstream_xchacha20poly1305_KEYBYTES) +
-    sizeof(OpenedArchive::flags);
+    ENC_U64_SIZE;
 
   f.seekp(FILE_COUNT_OFFSET);
-  return encryptFileCount(f, streamKey, newFileCount);
+  return writeEncU64(f, newFileCount, streamKey, "FILECONT");
 }
 
 

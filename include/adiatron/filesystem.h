@@ -30,8 +30,6 @@ struct OpenedArchive {
 
 
 
-bool decryptFileCount(std::ostream& f, const unsigned char* streamKey, uint64_t fileCount);
-
 bool openArchive(const Config& cfg, OpenedArchive& out);
 
 bool decryptMeta(
@@ -67,8 +65,9 @@ struct CreatedArchive {
   uint64_t flags;
 };
 
-
-bool encryptFileCount(std::ostream& f, const unsigned char* streamKey, uint64_t fileCount);
+bool writeEncU64(std::ostream& f, uint64_t v,
+                 const unsigned char* streamKey,
+                 const char (&ctx)[9], uint64_t subkeyId = 0);
 
 bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount);
 
