@@ -166,7 +166,7 @@ int encrypt(const Config& cfg) {
 
     auto metaBlock   = encryptMeta(e, archive.streamKey, bf);
     uint64_t metaLen = metaBlock.size();
-    archive.file.write(reinterpret_cast<char*>(&metaLen), sizeof metaLen);
+    writeEncU64(archive.file, metaLen, archive.streamKey, "METASIZE");
     archive.file.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());
 
     std::streampos lenPos = archive.file.tellp();

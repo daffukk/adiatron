@@ -154,7 +154,7 @@ bool writeEncU64(std::ostream& f, uint64_t v,
 
 bool readEncU64(std::istream& f, uint64_t& v,
                 const unsigned char* streamKey,
-                const char (&ctx)[9], uint64_t subkeyId = 0) {
+                const char (&ctx)[9], uint64_t subkeyId) {
   unsigned char buf[ENC_U64_SIZE];
   f.read(reinterpret_cast<char*>(buf), sizeof buf);
   if(!f) return false;

@@ -108,7 +108,7 @@ namespace fs=std::filesystem;
 
       auto metaBlock   = encryptMeta(e, archive.streamKey, bf);
       uint64_t metaLen = metaBlock.size();
-      appendFile.write(reinterpret_cast<char*>(&metaLen), sizeof metaLen);
+      writeEncU64(appendFile, metaLen, archive.streamKey, "METASIZE");
       appendFile.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());
 
       std::streampos lenPos = appendFile.tellp();

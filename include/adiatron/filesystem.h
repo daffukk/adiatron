@@ -30,6 +30,10 @@ struct OpenedArchive {
 
 
 
+bool readEncU64(std::istream& f, uint64_t& v,
+                const unsigned char* streamKey,
+                const char (&ctx)[9], uint64_t subkeyId = 0);
+
 bool openArchive(const Config& cfg, OpenedArchive& out);
 
 bool decryptMeta(
