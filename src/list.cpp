@@ -25,9 +25,8 @@ int list(const Config& cfg) {
 
   for(uint64_t i=0; i < archive.fileCount; i++) {
     uint64_t metaLen = 0;
-    readEncU64(archive.file, metaLen, archive.streamKey, "METASIZE");
-    if(archive.file.gcount() != static_cast<std::streamsize>(ENC_U64_SIZE)) {
-      std::cerr << "Unexpected end  of file while reading meta lengh\n";
+    if(!readEncU64(archive.file, metaLen, archive.streamKey, "METASIZE")) {
+      std::cerr << "Failed to read meta length for entry " << i << "\n";
       return -1;
     }
 
@@ -55,7 +54,10 @@ int list(const Config& cfg) {
       << color::reset;
 
     uint64_t dataLen = 0;
-    archive.file.read(reinterpret_cast<char*>(&dataLen), sizeof dataLen);
+    if(!readEncU64(archive.file, dataLen, archive.streamKey, "DATASIZE")) {
+      std::cerr << "Failed to read data length for entry " << i << "\n";
+      return -1;
+    }
     archive.file.seekg(dataLen, std::ios::cur);
   }
 

@@ -112,14 +112,14 @@ namespace fs=std::filesystem;
       appendFile.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());
 
       std::streampos lenPos = appendFile.tellp();
-      uint64_t placeholder  = 0;
-      appendFile.write(reinterpret_cast<char*>(&placeholder), sizeof placeholder);
+      unsigned char placeholder[ENC_U64_SIZE] = {};
+      appendFile.write(reinterpret_cast<char*>(placeholder), sizeof placeholder);
 
       uint64_t encLen = encryptFileData(appendFile, f.path, e.id, archive.streamKey);
 
       std::streampos afterPos = appendFile.tellp();
       appendFile.seekp(lenPos);
-      appendFile.write(reinterpret_cast<char*>(&encLen), sizeof encLen);
+      writeEncU64(appendFile, encLen, archive.streamKey, "DATASIZE");
       appendFile.seekp(afterPos);
 
       

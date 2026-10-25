@@ -159,9 +159,8 @@ int encrypt(const Config& cfg) {
     e.dataSize = fs::file_size(f.path);
 
     // BITFLAGS
-    if(cfg.recordFtime) e.mtime = toUnixTime(fs::last_write_time(f.path));
+    if(cfg.recordFtime) e.mtime      = toUnixTime(fs::last_write_time(f.path));
     else if(cfg.recordAtime) e.mtime = 0;
-
 
 
     auto metaBlock   = encryptMeta(e, archive.streamKey, bf);
@@ -170,14 +169,14 @@ int encrypt(const Config& cfg) {
     archive.file.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());
 
     std::streampos lenPos = archive.file.tellp();
-    uint64_t placeholder  = 0;
-    archive.file.write(reinterpret_cast<char*>(&placeholder), sizeof placeholder);
+    unsigned char placeholder[ENC_U64_SIZE] = {};
+    archive.file.write(reinterpret_cast<char*>(placeholder), sizeof placeholder);
 
     uint64_t encLen = encryptFileData(archive.file, f.path, e.id, archive.streamKey);
 
     std::streampos afterPos = archive.file.tellp();
     archive.file.seekp(lenPos);
-    archive.file.write(reinterpret_cast<char*>(&encLen), sizeof encLen);
+    writeEncU64(archive.file, encLen, archive.streamKey, "DATASIZE");
     archive.file.seekp(afterPos);
 
     

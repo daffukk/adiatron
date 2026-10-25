@@ -49,9 +49,8 @@ namespace fs = std::filesystem;
   uint64_t done=0;
   for(uint64_t i=0; i < archive.fileCount; i++) {
     uint64_t metaLen = 0;
-    readEncU64(archive.file, metaLen, archive.streamKey, "METASIZE");
-    if(archive.file.gcount() != static_cast<std::streamsize>(ENC_U64_SIZE)) {
-      std::cerr << "Unexpected end  of file while reading meta lengh\n";
+    if(!readEncU64(archive.file, metaLen, archive.streamKey, "METASIZE")) {
+      std::cerr << "Failed to read meta length for entry " << i << "\n";
       return -1;
     }
 
@@ -69,9 +68,8 @@ namespace fs = std::filesystem;
     }
 
     uint64_t dataLen = 0;
-    archive.file.read(reinterpret_cast<char*>(&dataLen), sizeof dataLen);
-    if(archive.file.gcount() != static_cast<std::streamsize>(sizeof dataLen)) {
-      std::cerr << "Unexpected end of file while reading data length\n";
+    if(!readEncU64(archive.file, dataLen, archive.streamKey, "DATASIZE")) {
+      std::cerr << "Failed to read data length for entry " << i << "\n";
       return -1;
     }
 
