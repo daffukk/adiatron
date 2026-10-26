@@ -105,28 +105,12 @@ namespace fs=std::filesystem;
       if(bf.Ftime) e.mtime                    = toUnixTime(fs::last_write_time(f.path));
       if(bf.Ftime && cfg.recordAtime) e.mtime = 0;
 
-
-      auto metaBlock   = encryptMeta(e, archive.streamKey, bf);
-      uint64_t metaLen = metaBlock.size();
-      writeEncU64(appendFile, metaLen, archive.streamKey, "METASIZE");
-      appendFile.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());
-
-      std::streampos lenPos = appendFile.tellp();
-      unsigned char placeholder[ENC_U64_SIZE] = {};
-      appendFile.write(reinterpret_cast<char*>(placeholder), sizeof placeholder);
-
-      uint64_t encLen = encryptFileData(appendFile, f.path, e.id, archive.streamKey);
-
-      std::streampos afterPos = appendFile.tellp();
-      appendFile.seekp(lenPos);
-      writeEncU64(appendFile, encLen, archive.streamKey, "DATASIZE");
-      appendFile.seekp(afterPos);
+      encryptEntry(appendFile, archive.streamKey, e, bf, f.path);
 
       
       ++done;
       std::string sign;
       double percent = double(done) / newFiles.size() * 100;
-
       std::cout << (cfg.verbose ? "" : "\r\033[K") 
         << done << "/" << newFiles.size() << "(" << std::fixed << std::setprecision(2) << percent << "%) "
         << "Encrypted: " 

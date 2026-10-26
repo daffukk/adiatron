@@ -1,3 +1,4 @@
+#include "adiatron/serialization.h"
 #include <adiatron/filesystem.h>
 #include <adiatron/terminal.h>
 #include <adiatron/config.h>
@@ -48,24 +49,8 @@ namespace fs = std::filesystem;
   int terminalWidth = getTerminalWidth() - 45;
   uint64_t done=0;
   for(uint64_t i=0; i < archive.fileCount; i++) {
-    uint64_t metaLen = 0;
-    if(!readEncU64(archive.file, metaLen, archive.streamKey, "METASIZE")) {
-      std::cerr << "Failed to read meta length for entry " << i << "\n";
-      return -1;
-    }
-
-    std::vector<uint8_t> metaBlock(metaLen);
-    archive.file.read(reinterpret_cast<char*>(metaBlock.data()), metaLen);
-    if(archive.file.gcount() != static_cast<std::streamsize>(metaLen)) {
-      std::cerr << "Unexpected end of file while reading meta block\n";
-      return -1;
-    }
-
     FileEntry e;
-    if(!decryptMeta(metaBlock.data(), metaBlock.size(), i, archive.streamKey, e, bf)) {
-      std::cerr << "Failed to decrypt metadata for entry " << i << "\n";
-      return -1;
-    }
+    decryptEntryMeta(archive.file, archive.streamKey, e, bf, i);
 
     uint64_t dataLen = 0;
     if(!readEncU64(archive.file, dataLen, archive.streamKey, "DATASIZE")) {

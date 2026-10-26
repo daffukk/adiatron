@@ -46,12 +46,16 @@ bool decryptMeta(
 );
 
 bool decryptFileData(
-    std::ifstream& in, 
+    std::istream& in, 
     uint64_t dataLen, 
     uint64_t entryId, 
     const unsigned char* streamKey, 
     const std::filesystem::path& outPath
 );
+
+
+int decryptEntryMeta(std::istream& archive, const unsigned char* streamKey,
+                 FileEntry& e, auto& bf, const uint64_t& id);
 
 
 // =================
@@ -68,6 +72,8 @@ struct CreatedArchive {
   unsigned char streamKey[crypto_secretstream_xchacha20poly1305_KEYBYTES];
   uint64_t flags;
 };
+
+
 
 bool writeEncU64(std::ostream& f, uint64_t v,
                  const unsigned char* streamKey,
@@ -89,3 +95,6 @@ uint64_t encryptFileData(
     uint64_t entryId, 
     const unsigned char* streamKey
 );
+
+void encryptEntry(std::ostream& archive, const unsigned char* streamKey,
+                  FileEntry& e, auto& bf, const std::string& fp);

@@ -132,6 +132,27 @@ uint64_t encryptFileData(
 
 
 
+void encryptEntry(std::ostream& archive, const unsigned char* streamKey,
+                  FileEntry& e, auto& bf, const std::string& fp) {
+  auto metaBlock   = encryptMeta(e, streamKey, bf);
+  uint64_t metaLen = metaBlock.size();
+  writeEncU64(archive, metaLen, streamKey, "METASIZE");
+  archive.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());
+
+  std::streampos lenPos = archive.tellp();
+  unsigned char placeholder[ENC_U64_SIZE] = {};
+  archive.write(reinterpret_cast<char*>(placeholder), sizeof placeholder);
+
+  uint64_t encLen = encryptFileData(archive, fp, e.id, streamKey);
+
+  std::streampos afterPos = archive.tellp();
+  archive.seekp(lenPos);
+  writeEncU64(archive, encLen, streamKey, "DATASIZE");
+  archive.seekp(afterPos);
+
+}
+
+
 
 
 
@@ -162,27 +183,11 @@ int encrypt(const Config& cfg) {
     if(cfg.recordFtime) e.mtime      = toUnixTime(fs::last_write_time(f.path));
     else if(cfg.recordAtime) e.mtime = 0;
 
-
-    auto metaBlock   = encryptMeta(e, archive.streamKey, bf);
-    uint64_t metaLen = metaBlock.size();
-    writeEncU64(archive.file, metaLen, archive.streamKey, "METASIZE");
-    archive.file.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());
-
-    std::streampos lenPos = archive.file.tellp();
-    unsigned char placeholder[ENC_U64_SIZE] = {};
-    archive.file.write(reinterpret_cast<char*>(placeholder), sizeof placeholder);
-
-    uint64_t encLen = encryptFileData(archive.file, f.path, e.id, archive.streamKey);
-
-    std::streampos afterPos = archive.file.tellp();
-    archive.file.seekp(lenPos);
-    writeEncU64(archive.file, encLen, archive.streamKey, "DATASIZE");
-    archive.file.seekp(afterPos);
+    encryptEntry(archive.file, archive.streamKey, e, bf, f.path);
 
     
     std::string sign;
     double percent = (double(e.id + 1) / files.size()) * 100;
-
     std::cout << (cfg.verbose ? "" : "\r\033[K") 
       << e.id + 1 << "/" << files.size() << "(" << std::fixed << std::setprecision(2) << percent << "%) "
       << "Encrypted: " 

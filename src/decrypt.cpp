@@ -61,7 +61,7 @@ bool decryptMeta(
 
 
 bool decryptFileData(
-    std::ifstream& in, 
+    std::istream& in, 
     uint64_t dataLen, 
     uint64_t entryId, 
     const unsigned char* streamKey, 
@@ -124,6 +124,31 @@ bool decryptFileData(
 
 
 
+int decryptEntryMeta(std::istream& archive, const unsigned char* streamKey,
+                     FileEntry& e, auto& bf, const uint64_t& id) {
+  uint64_t metaLen = 0;
+  
+  if(!readEncU64(archive, metaLen, streamKey, "METASIZE")) {
+    std::cerr << "Failed to read meta length for entry " << id << "\n";
+    return -1;
+  }
+
+  std::vector<uint8_t> metaBlock(metaLen);
+  archive.read(reinterpret_cast<char*>(metaBlock.data()), metaLen);
+  if(archive.gcount() != static_cast<std::streamsize>(metaLen)) {
+    std::cerr << "Unexpected end of file while reading meta block\n";
+    return -1;
+  }
+
+  if(!decryptMeta(metaBlock.data(), metaBlock.size(), id, streamKey, e, bf)) {
+    std::cerr << "Failed to decrypt metadata for entry " << id << "\n";
+    return -1;
+  }
+
+  return 0;
+}
+
+
 
 
 
@@ -158,32 +183,15 @@ int decrypt(const Config& cfg) {
 
   int terminalWidth = getTerminalWidth() - 40;
   for(uint64_t i=0; i < archive.fileCount; i++) {
-    uint64_t metaLen = 0;
-    
-    if(!readEncU64(archive.file, metaLen, archive.streamKey, "METASIZE")) {
-      std::cerr << "Failed to read meta length for entry " << i << "\n";
-      return -1;
-    }
-
-    std::vector<uint8_t> metaBlock(metaLen);
-    archive.file.read(reinterpret_cast<char*>(metaBlock.data()), metaLen);
-    if(archive.file.gcount() != static_cast<std::streamsize>(metaLen)) {
-      std::cerr << "Unexpected end of file while reading meta block\n";
-      return -1;
-    }
-
     FileEntry e;
-    if(!decryptMeta(metaBlock.data(), metaBlock.size(), i, archive.streamKey, e, bf)) {
-      std::cerr << "Failed to decrypt metadata for entry " << i << "\n";
-      return -1;
-    }
+    decryptEntryMeta(archive.file, archive.streamKey, e, bf, i);
 
     uint64_t dataLen = 0;
     if(!readEncU64(archive.file, dataLen, archive.streamKey, "DATASIZE")) {
       std::cerr << "Unexpected end of file while reading data length\n";
       return -1;
     }
-
+  
     fs::path outPath = fs::path(outDirName) / e.path;
     if(!decryptFileData(archive.file, dataLen, e.id, archive.streamKey, outPath)) {
       std::cerr << "Failed to decrypt file: " << e.path << "\n";
@@ -191,8 +199,8 @@ int decrypt(const Config& cfg) {
     }
 
     //BITFLAGS
-
     if(bf.Ftime) fs::last_write_time(outPath, fromUnixTime(e.mtime));
+
 
     std::string sign;
     double percent = (double(e.id + 1) / archive.fileCount) * 100;
