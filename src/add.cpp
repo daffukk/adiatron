@@ -98,7 +98,7 @@ namespace fs=std::filesystem;
       FileEntry e;
       e.id       = nextId++;
       e.type     = EntryType::file;
-      e.path     = destp + f.archivePath;
+      e.path     = destp.empty() ? f.archivePath : destp + "/" + f.archivePath;
       e.dataSize = fs::file_size(f.path);
 
       // BITFLAGS
