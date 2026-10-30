@@ -11,6 +11,7 @@
 #include <adiatron/terminal.h>
 #include <adiatron/config.h>
 #include <adiatron/utils.h>
+#include <stdexcept>
 #include <sys/types.h>
 #include <filesystem>
 #include <algorithm>
@@ -184,7 +185,8 @@ int decrypt(const Config& cfg) {
   int terminalWidth = getTerminalWidth() - 40;
   for(uint64_t i=0; i < archive.fileCount; i++) {
     FileEntry e;
-    decryptEntryMeta(archive.file, archive.streamKey, e, bf, i);
+    if(!decryptEntryMeta(archive.file, archive.streamKey, e, bf, i))
+      throw std::runtime_error("Failed to decrypt metadata for entry " + i);
 
     uint64_t dataLen = 0;
     if(!readEncU64(archive.file, dataLen, archive.streamKey, "DATASIZE")) {

@@ -208,12 +208,14 @@ bool openArchive(const Config& cfg, OpenedArchive &out) {
   if(cfg.plainBF)
     out.file.read(reinterpret_cast<char*>(&out.flags), sizeof out.flags);
   else
-    if(!readEncU64(out.file, out.flags, out.streamKey, "FLAGSKEY")) return false;
+    if(!readEncU64(out.file, out.flags, out.streamKey, "FLAGSKEY"))
+      throw std::runtime_error("Failed to decrypt bit flags.\n");
 
   if(cfg.plainCount)
     out.file.read(reinterpret_cast<char*>(&out.fileCount), sizeof out.fileCount);
   else
-    if(!readEncU64(out.file, out.fileCount, out.streamKey, "FILECONT")) return false;
+    if(!readEncU64(out.file, out.fileCount, out.streamKey, "FILECONT"))
+      throw std::runtime_error("Failed to decrypt filecount.\n");
 
   return true;
 }
