@@ -175,7 +175,9 @@ int decrypt(const Config& cfg) {
     if(p.filename().empty()) {
       p = p.parent_path();
     }
-    outDirName = p.string() + ".out";
+    fs::exists(p.replace_extension()) 
+      ? outDirName = p.replace_extension().string() + ".out" 
+      : outDirName = p.string();
   }
   fs::create_directories(outDirName);
 
