@@ -27,7 +27,7 @@ int list(const Config& cfg) {
   for(uint64_t i=0; i < archive.fileCount; i++) {
     FileEntry e;
     if(!decryptEntryMeta(archive.file, archive.streamKey, e, bf, i))
-      throw std::runtime_error("Failed to decrypt metadata for entry " + i);
+      throw std::runtime_error("Failed to decrypt metadata.\n");
 
     std::string sign;
     std::cout

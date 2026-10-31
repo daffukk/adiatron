@@ -54,7 +54,7 @@ bool decryptFileData(
 );
 
 
-int decryptEntryMeta(std::istream& archive, const unsigned char* streamKey,
+bool decryptEntryMeta(std::istream& archive, const unsigned char* streamKey,
                  FileEntry& e, auto& bf, const uint64_t& id);
 
 

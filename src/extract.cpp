@@ -51,7 +51,7 @@ namespace fs = std::filesystem;
   for(uint64_t i=0; i < archive.fileCount; i++) {
     FileEntry e;
     if(!decryptEntryMeta(archive.file, archive.streamKey, e, bf, i))
-      throw std::runtime_error("Failed to decrypt metadata for entry " + i);
+      throw std::runtime_error("Failed to decrypt metadata.\n");
 
     uint64_t dataLen = 0;
     if(!readEncU64(archive.file, dataLen, archive.streamKey, "DATASIZE")) {

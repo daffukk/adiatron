@@ -125,28 +125,28 @@ bool decryptFileData(
 
 
 
-int decryptEntryMeta(std::istream& archive, const unsigned char* streamKey,
+bool decryptEntryMeta(std::istream& archive, const unsigned char* streamKey,
                      FileEntry& e, auto& bf, const uint64_t& id) {
   uint64_t metaLen = 0;
   
   if(!readEncU64(archive, metaLen, streamKey, "METASIZE")) {
     std::cerr << "Failed to read meta length for entry " << id << "\n";
-    return -1;
+    return false;
   }
 
   std::vector<uint8_t> metaBlock(metaLen);
   archive.read(reinterpret_cast<char*>(metaBlock.data()), metaLen);
   if(archive.gcount() != static_cast<std::streamsize>(metaLen)) {
     std::cerr << "Unexpected end of file while reading meta block\n";
-    return -1;
+    return false;
   }
 
   if(!decryptMeta(metaBlock.data(), metaBlock.size(), id, streamKey, e, bf)) {
     std::cerr << "Failed to decrypt metadata for entry " << id << "\n";
-    return -1;
+    return false;
   }
 
-  return 0;
+  return true;
 }
 
 
@@ -186,7 +186,7 @@ int decrypt(const Config& cfg) {
   for(uint64_t i=0; i < archive.fileCount; i++) {
     FileEntry e;
     if(!decryptEntryMeta(archive.file, archive.streamKey, e, bf, i))
-      throw std::runtime_error("Failed to decrypt metadata for entry " + i);
+      throw std::runtime_error("Failed to decrypt metadata.\n");
 
     uint64_t dataLen = 0;
     if(!readEncU64(archive.file, dataLen, archive.streamKey, "DATASIZE")) {
