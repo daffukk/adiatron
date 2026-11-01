@@ -69,7 +69,8 @@ namespace fs=std::filesystem;
   }
 
 
-  std::vector<InputFile> newFiles = collectFiles(cfg.inputs);
+  uint64_t totalSize = 0;
+  std::vector<InputFile> newFiles = collectFiles(cfg.inputs, totalSize);
   uint64_t newFileCount = newFiles.size();
 
   OpenedArchive archive;
@@ -93,6 +94,7 @@ namespace fs=std::filesystem;
   try {
     uint64_t nextId   = archive.fileCount;
     uint64_t done     = 0;
+    uint64_t eBytes   = 0;
 
     for(const auto& f : newFiles) {
       FileEntry e;
@@ -105,7 +107,7 @@ namespace fs=std::filesystem;
       if(bf.Ftime) e.mtime                    = toUnixTime(fs::last_write_time(f.path));
       if(bf.Ftime && cfg.recordAtime) e.mtime = 0;
 
-      encryptEntry(appendFile, archive.streamKey, e, bf, f.path);
+      encryptEntry(appendFile, archive.streamKey, e, bf, f.path, eBytes);
 
       
       ++done;
