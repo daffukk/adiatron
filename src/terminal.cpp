@@ -1,5 +1,6 @@
 #include <adiatron/utils.h>
 #include <adiatron/terminal.h>
+#include <atomic>
 #include <chrono>
 #include <iomanip>
 #include <mutex>
@@ -53,7 +54,8 @@ std::string readPassphraseHidden(const std::string& prompt) {
 }
 
 
-void drawProgressBar(uint64_t& processedBytes, const uint64_t totalBytes, bool& running) {
+void drawProgressBar(std::atomic<uint64_t>& processedBytes, const uint64_t totalBytes,
+                     std::atomic<bool>& running) {
   const int twidth = getTerminalWidth();
   while(running) { 
     float percent = ((float)processedBytes / totalBytes) * 100;

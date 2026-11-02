@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include <filesystem>
 #include <sodium.h>
 #include <cstdint>
@@ -92,7 +93,8 @@ std::vector<uint8_t> encryptMeta(
 
 uint64_t encryptFileData(std::ostream& out, const std::filesystem::path& filePath, 
                          uint64_t entryId, const unsigned char* streamKey,
-                         uint64_t& encryptedBytes);
+                         std::atomic<uint64_t>& encryptedBytes);
 
 void encryptEntry(std::ostream& archive, const unsigned char* streamKey,
-                  FileEntry& e, auto& bf, const std::string& fp, uint64_t& eBytes);
+                  FileEntry& e, auto& bf, const std::string& fp,
+                  std::atomic<uint64_t>& eBytes);

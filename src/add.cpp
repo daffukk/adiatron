@@ -3,6 +3,7 @@
 #include <adiatron/config.h>
 #include <adiatron/utils.h>
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <fstream>
 #include <ios>
@@ -94,7 +95,8 @@ namespace fs=std::filesystem;
   try {
     uint64_t nextId   = archive.fileCount;
     uint64_t done     = 0;
-    uint64_t eBytes   = 0;
+    std::atomic<uint64_t> 
+             eBytes   = 0;
 
     for(const auto& f : newFiles) {
       FileEntry e;

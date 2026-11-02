@@ -1,3 +1,4 @@
+#include <atomic>
 #include <sodium/crypto_secretstream_xchacha20poly1305.h>
 #include <sodium/crypto_secretbox.h>
 #include <sodium/randombytes.h>
@@ -89,7 +90,7 @@ std::vector<uint8_t> encryptMeta(
 
 uint64_t encryptFileData(std::ostream& out, const fs::path& filePath, 
                          uint64_t entryId, const unsigned char* streamKey, 
-                         uint64_t& encryptedBytes) {
+                         std::atomic<uint64_t>& encryptedBytes) {
   unsigned char dataKey[crypto_secretstream_xchacha20poly1305_KEYBYTES];
   crypto_kdf_derive_from_key(dataKey, sizeof dataKey, entryId, "FILEDATA", streamKey);
 
@@ -136,7 +137,8 @@ uint64_t encryptFileData(std::ostream& out, const fs::path& filePath,
 
 
 void encryptEntry(std::ostream& archive, const unsigned char* streamKey,
-                  FileEntry& e, auto& bf, const std::string& fp, uint64_t& eBytes) {
+                  FileEntry& e, auto& bf, const std::string& fp,
+                  std::atomic<uint64_t>& eBytes) {
   auto metaBlock   = encryptMeta(e, streamKey, bf);
   uint64_t metaLen = metaBlock.size();
   writeEncU64(archive, metaLen, streamKey, "METASIZE");
@@ -174,8 +176,10 @@ int encrypt(const Config& cfg) {
   auto bf                 = readBitFlags(archive.flags);
   int terminalWidth       = getTerminalWidth() - 45;
   uint64_t nextId         = 0;
-  uint64_t encryptedBytes = 0;
-  bool running            = true;
+  std::atomic<uint64_t> 
+           encryptedBytes = 0;
+  std::atomic<bool> 
+           running        = true;
 
   std::thread pbt;
   if(!cfg.verbose) {
