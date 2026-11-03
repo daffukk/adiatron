@@ -7,8 +7,10 @@
 #include <cstdint>
 #include <fstream>
 #include <ios>
+#include <mutex>
 #include <sodium/crypto_secretbox.h>
 #include <sodium/crypto_secretstream_xchacha20poly1305.h>
+#include <thread>
 
 
 
@@ -97,6 +99,17 @@ namespace fs=std::filesystem;
     uint64_t done     = 0;
     std::atomic<uint64_t> 
              eBytes   = 0;
+    std::atomic<bool>
+             running  = true;
+
+
+    std::thread pbt;
+    if(!cfg.verbose) {
+      std::cout << "\n" << std::flush;
+      pbt = std::thread(drawProgressBar, std::ref(eBytes),
+                        totalSize, std::ref(running));
+    }
+
 
     for(const auto& f : newFiles) {
       FileEntry e;
@@ -115,7 +128,9 @@ namespace fs=std::filesystem;
       ++done;
       std::string sign;
       double percent = double(done) / newFiles.size() * 100;
-      std::cout << (cfg.verbose ? "" : "\r\033[K") 
+      std::lock_guard<std::mutex> lk(coutMutex);
+      std::cout 
+        << (cfg.verbose ? "" : "\033[1A\r\033[K") 
         << done << "/" << newFiles.size() << "(" << std::fixed << std::setprecision(2) << percent << "%) "
         << "Encrypted: " 
         << color::cyan
@@ -123,10 +138,13 @@ namespace fs=std::filesystem;
         << color::yellow
         << " (" << convertBytes(e.dataSize, sign) << sign << ")"
         << color::reset;
-      cfg.verbose ? std::cout << "\n" : std::cout << std::flush;
-
-
+      cfg.verbose 
+        ? std::cout << "\n" 
+        : std::cout << "\033[1B\r" << std::flush;
     }
+    running = false;
+    if(pbt.joinable()) pbt.join();
+
 
     if(!appendFile) throw std::runtime_error("Write error (disk full?)");
     appendFile.close(); // close second stream, appending done
