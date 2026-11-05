@@ -1,3 +1,4 @@
+#include <atomic>
 #include <sodium/crypto_secretstream_xchacha20poly1305.h>
 #include <sodium/crypto_aead_chacha20poly1305.h>
 #include <sodium/crypto_secretbox.h>
@@ -19,6 +20,7 @@
 #include <cstdint>
 #include <fstream>
 #include <ostream>
+#include <thread>
 #include <vector>
 #include <ios>
 
@@ -61,13 +63,9 @@ bool decryptMeta(
 
 
 
-bool decryptFileData(
-    std::istream& in, 
-    uint64_t dataLen, 
-    uint64_t entryId, 
-    const unsigned char* streamKey, 
-    const fs::path& outPath
-) {
+bool decryptFileData(std::istream& in, uint64_t dataLen, 
+                     uint64_t entryId, const unsigned char* streamKey,
+                     const fs::path& outPath, std::atomic<uint64_t>& decryptedBytes) {
   unsigned char dataKey[crypto_secretstream_xchacha20poly1305_KEYBYTES];
   crypto_kdf_derive_from_key(dataKey, sizeof dataKey, entryId, "FILEDATA", streamKey);
 
@@ -114,6 +112,7 @@ bool decryptFileData(
 
     out.write(reinterpret_cast<char*>(outBuffer), outLen);
     remaining -= readBytes;
+    decryptedBytes += readBytes;
 
     if(tag == crypto_secretstream_xchacha20poly1305_TAG_FINAL && remaining != 0) {
       std::cerr << "Stream ended early, file may be truncated.\n";
@@ -162,7 +161,7 @@ int decrypt(const Config& cfg) {
 
   OpenedArchive archive;
   if(!openArchive(cfg, archive)) return -1;
-
+  uint64_t totalSize = fs::file_size(cfg.archive);
   BitFlags bf = readBitFlags(archive.flags);
 
 
@@ -182,9 +181,21 @@ int decrypt(const Config& cfg) {
   fs::create_directories(outDirName);
 
 
-  std::cout << "Decrypting " << archive.fileCount << " file(s)\n";
 
   int terminalWidth = getTerminalWidth() - 40;
+  std::atomic<uint64_t> 
+           decryptedBytes = 0;
+  std::atomic<bool> 
+           running        = true;
+
+  std::thread pbt;
+  if(!cfg.verbose) {
+    std::cout << "\n" << std::flush;
+    pbt = std::thread(drawProgressBar, std::ref(decryptedBytes),
+                      totalSize, std::ref(running));
+  }
+
+  // std::cout << "Decrypting " << archive.fileCount << " file(s)\n";
   for(uint64_t i=0; i < archive.fileCount; i++) {
     FileEntry e;
     if(!decryptEntryMeta(archive.file, archive.streamKey, e, bf, i))
@@ -197,7 +208,7 @@ int decrypt(const Config& cfg) {
     }
   
     fs::path outPath = fs::path(outDirName) / e.path;
-    if(!decryptFileData(archive.file, dataLen, e.id, archive.streamKey, outPath)) {
+    if(!decryptFileData(archive.file, dataLen, e.id, archive.streamKey, outPath, decryptedBytes)) {
       std::cerr << "Failed to decrypt file: " << e.path << "\n";
       return -1;
     }
@@ -208,8 +219,9 @@ int decrypt(const Config& cfg) {
 
     std::string sign;
     double percent = (double(e.id + 1) / archive.fileCount) * 100;
-
-    std::cout << (cfg.verbose ? "" : "\r\033[K") 
+    std::lock_guard<std::mutex> lk(coutMutex);
+    std::cout 
+      << (cfg.verbose ? "" : "\033[1A\r\033[K") 
       << e.id + 1 << "/" << archive.fileCount << "(" << std::fixed << std::setprecision(2) << percent << "%) "
       << "Decrypted: " 
       << color::cyan
@@ -217,8 +229,12 @@ int decrypt(const Config& cfg) {
       << color::yellow
       << " (" << convertBytes(e.dataSize, sign) << sign << ")"
       << color::reset;
-    cfg.verbose ? std::cout << "\n" : std::cout << std::flush;
+    cfg.verbose 
+      ? std::cout << "\n"
+      : std::cout << "\033[1B\r" << std::flush;
   }
+  running = false;
+  if(pbt.joinable()) pbt.join();
 
 
   std::cout << "\n==> Decrypted successfully.\n";

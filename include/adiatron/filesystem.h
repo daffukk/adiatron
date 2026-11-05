@@ -46,13 +46,10 @@ bool decryptMeta(
     const BitFlags& bf
 );
 
-bool decryptFileData(
-    std::istream& in, 
-    uint64_t dataLen, 
-    uint64_t entryId, 
-    const unsigned char* streamKey, 
-    const std::filesystem::path& outPath
-);
+bool decryptFileData(std::istream& in, uint64_t dataLen, 
+                     uint64_t entryId, const unsigned char* streamKey,
+                     const std::filesystem::path& outPath,
+                     std::atomic<uint64_t>& decryptedBytes);
 
 
 bool decryptEntryMeta(std::istream& archive, const unsigned char* streamKey,

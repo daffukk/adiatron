@@ -49,6 +49,11 @@ namespace fs = std::filesystem;
   fs::create_directories(outDirName);
 
   int terminalWidth = getTerminalWidth() - 45;
+  std::atomic<uint64_t> 
+           decryptedBytes = 0;
+  std::atomic<bool> 
+           running        = true;
+
   uint64_t done=0;
   for(uint64_t i=0; i < archive.fileCount; i++) {
     FileEntry e;
@@ -74,7 +79,7 @@ namespace fs = std::filesystem;
       
 
       fs::path outPath = fs::path(outDirName) / e.path;
-      if(!decryptFileData(archive.file, dataLen, e.id, archive.streamKey, outPath)) {
+      if(!decryptFileData(archive.file, dataLen, e.id, archive.streamKey, outPath, decryptedBytes)) {
         std::cerr << "Failed to decrypt file: " << e.path << "\n";
         return -1;
       }
