@@ -49,12 +49,8 @@ namespace fs = std::filesystem;
   fs::create_directories(outDirName);
 
   int terminalWidth = getTerminalWidth() - 45;
-  std::atomic<uint64_t> 
-           decryptedBytes = 0;
-  std::atomic<bool> 
-           running        = true;
-
-  uint64_t done=0;
+  uint64_t done                        = 0;
+  std::atomic<uint64_t> decryptedBytes = 0;
   for(uint64_t i=0; i < archive.fileCount; i++) {
     FileEntry e;
     if(!decryptEntryMeta(archive.file, archive.streamKey, e, bf, i))

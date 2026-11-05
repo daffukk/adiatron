@@ -125,7 +125,7 @@ adiatron keygen --passphrase
 - [ ] `--rnames` or similar flag that will randomize filenames in archive.
 - [ ] Extract one file from archive without decrypting this file.
 - [ ] `.config/adiatron` default configuration directory
-- [ ] Progress bar 
+- [X] Progress bar 
 - [ ] Encrypt file entries(keys and headers) and add encrypted "roadmap" to manage them
 - [ ] Select usb drive for keys
 - [ ] CLI autocompletion
