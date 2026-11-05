@@ -48,11 +48,14 @@ Config parseArgs(int argc, char** argv) {
       return args[++i];
     };
 
-    if     (a == "-o" || a =="--filename")      cfg.filename = value();
+    if     (a == "-o" || a =="--filename")  cfg.filename = value();
     else if(a == "--keydir")                cfg.keysDir  = value();
     else if(a == "--pkey")                  cfg.pubPath = value();
     else if(a == "--skey")                  cfg.secPath = value();
+    else if(a == "--dest")                  cfg.destPath = value();
     else if(a == "-v" || a == "--verbose")  cfg.verbose = true;
+    else if(a == "--plain-count")           cfg.plainCount = true;
+    else if(a == "--plain-bitflags")        cfg.plainBF = true;
     else if(a == "-p" || a == "--passphrase") cfg.usePassphrase = true;
     else if(a == "--nokeyformat")           cfg.noKeyFormat = true;
     else if(a == "--atime")                 cfg.recordAtime = true;
@@ -110,6 +113,8 @@ Config parseArgs(int argc, char** argv) {
 
   if((cfg.recordFtime || cfg.recordAtime) && (cfg.mode != "encrypt" || cfg.mode != "add"))
     throw std::runtime_error("--atime/--ftime only work with add or encrypt modes");
+  if(!cfg.destPath.empty() && cfg.mode != "add")
+    throw std::runtime_error("--dest only work with add mode");
 
   return cfg;
 }

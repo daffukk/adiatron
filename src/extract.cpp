@@ -1,3 +1,4 @@
+#include "adiatron/serialization.h"
 #include <adiatron/filesystem.h>
 #include <adiatron/terminal.h>
 #include <adiatron/config.h>
@@ -41,47 +42,40 @@ namespace fs = std::filesystem;
     if(p.filename().empty()) {
       p = p.parent_path();
     }
-    outDirName = p.string() + ".out";
+    fs::exists(p.replace_extension()) 
+      ? outDirName = p.replace_extension().string() + ".out" 
+      : outDirName = p.string();
   }
   fs::create_directories(outDirName);
 
-  uint64_t done=0;
+  int terminalWidth = getTerminalWidth() - 45;
+  uint64_t done                        = 0;
+  std::atomic<uint64_t> decryptedBytes = 0;
   for(uint64_t i=0; i < archive.fileCount; i++) {
-    uint64_t metaLen = 0;
-    archive.file.read(reinterpret_cast<char*>(&metaLen), sizeof metaLen);
-    if(archive.file.gcount() != static_cast<std::streamsize>(sizeof metaLen)) {
-      std::cerr << "Unexpected end  of file while reading meta lengh\n";
-      return -1;
-    }
-
-    std::vector<uint8_t> metaBlock(metaLen);
-    archive.file.read(reinterpret_cast<char*>(metaBlock.data()), metaLen);
-    if(archive.file.gcount() != static_cast<std::streamsize>(metaLen)) {
-      std::cerr << "Unexpected end of file while reading meta block\n";
-      return -1;
-    }
-
     FileEntry e;
-    if(!decryptMeta(metaBlock.data(), metaBlock.size(), i, archive.streamKey, e, bf)) {
-      std::cerr << "Failed to decrypt metadata for entry " << i << "\n";
-      return -1;
-    }
+    if(!decryptEntryMeta(archive.file, archive.streamKey, e, bf, i))
+      throw std::runtime_error("Failed to decrypt metadata.\n");
 
     uint64_t dataLen = 0;
-    archive.file.read(reinterpret_cast<char*>(&dataLen), sizeof dataLen);
-    if(archive.file.gcount() != static_cast<std::streamsize>(sizeof dataLen)) {
-      std::cerr << "Unexpected end of file while reading data length\n";
+    if(!readEncU64(archive.file, dataLen, archive.streamKey, "DATASIZE")) {
+      std::cerr << "Failed to read data length for entry " << i << "\n";
       return -1;
     }
 
     if(std::find(cfg.ids.begin(), cfg.ids.end(), e.id) != cfg.ids.end()) {
       std::string sign;
-      std::cout << "File found. Decrypting...\n";
-      std::cout << e.id << "  " << e.path << " (" << convertBytes(e.dataSize, sign) << sign << ")\n";
+      std::cout << (cfg.verbose ? "" : "\r\033[K")
+        << e.id << "  " 
+        << color::cyan
+        << truncateMiddle(e.path, terminalWidth)
+        << color::yellow
+        << " (" << convertBytes(e.dataSize, sign) << sign << ")"
+        << color::reset;
+      cfg.verbose ? std::cout << "\n" : std::cout << std::flush;
       
 
       fs::path outPath = fs::path(outDirName) / e.path;
-      if(!decryptFileData(archive.file, dataLen, e.id, archive.streamKey, outPath)) {
+      if(!decryptFileData(archive.file, dataLen, e.id, archive.streamKey, outPath, decryptedBytes)) {
         std::cerr << "Failed to decrypt file: " << e.path << "\n";
         return -1;
       }

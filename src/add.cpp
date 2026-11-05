@@ -2,18 +2,23 @@
 #include <adiatron/terminal.h>
 #include <adiatron/config.h>
 #include <adiatron/utils.h>
+#include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <fstream>
 #include <ios>
+#include <mutex>
 #include <sodium/crypto_secretbox.h>
 #include <sodium/crypto_secretstream_xchacha20poly1305.h>
+#include <thread>
 
 
 
 
 
 
-bool updateFileCount(const std::string& file, uint64_t newFileCount) {
+bool updateFileCount(const std::string& file, uint64_t newFileCount,
+                     const unsigned char* streamKey) {
   std::fstream f(file, std::ios::binary | std::ios::in | std::ios::out);
   if(!f) {
     std::cerr << "Failed to reopen archive for updating file count\n";
@@ -23,12 +28,35 @@ bool updateFileCount(const std::string& file, uint64_t newFileCount) {
   constexpr std::streamoff FILE_COUNT_OFFSET =
     crypto_secretbox_NONCEBYTES +
     (crypto_secretbox_MACBYTES + crypto_secretstream_xchacha20poly1305_KEYBYTES) +
-    sizeof(OpenedArchive::flags);
+    ENC_U64_SIZE;
 
   f.seekp(FILE_COUNT_OFFSET);
-  f.write(reinterpret_cast<char*>(&newFileCount), sizeof newFileCount);
+  return writeEncU64(f, newFileCount, streamKey, "FILECONT");
+}
 
-  return true;
+
+
+std::string sanitizeAddPath(std::string p) {
+  std::replace(p.begin(), p.end(), '\\', '/');
+
+  while(!p.empty() && p.front() == '/')
+    p.erase(p.begin());
+
+  std::filesystem::path input(p);
+  std::filesystem::path result;
+
+  for(const auto& component : input) {
+    std::string part = component.string();
+
+    if(part.empty() || part == "." || part == ".." || part == "~")
+      continue;
+
+    if(part.find(':') != std::string::npos)
+      continue;
+    result /= component;
+  }
+
+  return result.generic_string();
 }
 
 
@@ -44,7 +72,8 @@ namespace fs=std::filesystem;
   }
 
 
-  std::vector<InputFile> newFiles = collectFiles(cfg.inputs);
+  uint64_t totalSize = 0;
+  std::vector<InputFile> newFiles = collectFiles(cfg.inputs, totalSize);
   uint64_t newFileCount = newFiles.size();
 
   OpenedArchive archive;
@@ -63,45 +92,45 @@ namespace fs=std::filesystem;
 
   appendFile.seekp(0, std::ios::end);
   const std::streamoff originalSize = appendFile.tellp();
+  const auto destp = sanitizeAddPath(cfg.destPath);
 
   try {
     uint64_t nextId   = archive.fileCount;
     uint64_t done     = 0;
+    std::atomic<uint64_t> 
+             eBytes   = 0;
+    std::atomic<bool>
+             running  = true;
+
+
+    std::thread pbt;
+    if(!cfg.verbose) {
+      std::cout << "\n" << std::flush;
+      pbt = std::thread(drawProgressBar, std::ref(eBytes),
+                        totalSize, std::ref(running));
+    }
+
 
     for(const auto& f : newFiles) {
       FileEntry e;
       e.id       = nextId++;
       e.type     = EntryType::file;
-      e.path     = f.archivePath;
+      e.path     = destp.empty() ? f.archivePath : destp + "/" + f.archivePath;
       e.dataSize = fs::file_size(f.path);
 
       // BITFLAGS
       if(bf.Ftime) e.mtime                    = toUnixTime(fs::last_write_time(f.path));
       if(bf.Ftime && cfg.recordAtime) e.mtime = 0;
 
-
-      auto metaBlock   = encryptMeta(e, archive.streamKey, bf);
-      uint64_t metaLen = metaBlock.size();
-      appendFile.write(reinterpret_cast<char*>(&metaLen), sizeof metaLen);
-      appendFile.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());
-
-      std::streampos lenPos = appendFile.tellp();
-      uint64_t placeholder  = 0;
-      appendFile.write(reinterpret_cast<char*>(&placeholder), sizeof placeholder);
-
-      uint64_t encLen = encryptFileData(appendFile, f.path, e.id, archive.streamKey);
-
-      std::streampos afterPos = appendFile.tellp();
-      appendFile.seekp(lenPos);
-      appendFile.write(reinterpret_cast<char*>(&encLen), sizeof encLen);
-      appendFile.seekp(afterPos);
+      encryptEntry(appendFile, archive.streamKey, e, bf, f.path, eBytes);
 
       
       ++done;
       std::string sign;
       double percent = double(done) / newFiles.size() * 100;
-
-      std::cout << (cfg.verbose ? "" : "\r\033[K") 
+      std::lock_guard<std::mutex> lk(coutMutex);
+      std::cout 
+        << (cfg.verbose ? "" : "\033[1A\r\033[K") 
         << done << "/" << newFiles.size() << "(" << std::fixed << std::setprecision(2) << percent << "%) "
         << "Encrypted: " 
         << color::cyan
@@ -109,10 +138,13 @@ namespace fs=std::filesystem;
         << color::yellow
         << " (" << convertBytes(e.dataSize, sign) << sign << ")"
         << color::reset;
-      cfg.verbose ? std::cout << "\n" : std::cout << std::flush;
-
-
+      cfg.verbose 
+        ? std::cout << "\n" 
+        : std::cout << "\033[1B\r" << std::flush;
     }
+    running = false;
+    if(pbt.joinable()) pbt.join();
+
 
     if(!appendFile) throw std::runtime_error("Write error (disk full?)");
     appendFile.close(); // close second stream, appending done
@@ -124,7 +156,7 @@ namespace fs=std::filesystem;
   }
 
 
-  if(!updateFileCount(cfg.archive, archive.fileCount + newFileCount)) {
+  if(!updateFileCount(cfg.archive, archive.fileCount + newFileCount, archive.streamKey)) {
     std::cerr << "Warning: files were added, but file count could not be updated\n";
     return -1;
   } // third and last stream, updating filecount.

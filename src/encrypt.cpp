@@ -1,3 +1,4 @@
+#include <atomic>
 #include <sodium/crypto_secretstream_xchacha20poly1305.h>
 #include <sodium/crypto_secretbox.h>
 #include <sodium/randombytes.h>
@@ -18,13 +19,15 @@
 #include <iosfwd>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
+#include <mutex>
 #include <set>
 
 namespace fs = std::filesystem;
 
 
-std::vector<InputFile> collectFiles(const std::vector<std::string>& sources) {
+std::vector<InputFile> collectFiles(const std::vector<std::string>& sources, uint64_t& totalSize) {
   std::vector<InputFile> result;
   std::set<std::string> seen;
 
@@ -40,10 +43,13 @@ std::vector<InputFile> collectFiles(const std::vector<std::string>& sources) {
 
     if(fs::is_directory(src)) {
       for(const auto& e : fs::recursive_directory_iterator(src)) {
-        if(e.is_regular_file())
+        if(e.is_regular_file()){
+          totalSize += fs::file_size(e);
           add(e.path(), fs::relative(e.path(), src).generic_string());
+        }
       }
     } else {
+      totalSize += fs::file_size(src);
       add(src, fs::path(src).filename().generic_string());
     }
   }
@@ -82,12 +88,9 @@ std::vector<uint8_t> encryptMeta(
 
 
 
-uint64_t encryptFileData(
-    std::ostream& out, 
-    const fs::path& filePath, 
-    uint64_t entryId, 
-    const unsigned char* streamKey
-) {
+uint64_t encryptFileData(std::ostream& out, const fs::path& filePath, 
+                         uint64_t entryId, const unsigned char* streamKey, 
+                         std::atomic<uint64_t>& encryptedBytes) {
   unsigned char dataKey[crypto_secretstream_xchacha20poly1305_KEYBYTES];
   crypto_kdf_derive_from_key(dataKey, sizeof dataKey, entryId, "FILEDATA", streamKey);
 
@@ -124,12 +127,35 @@ uint64_t encryptFileData(
     );
     out.write(reinterpret_cast<char*>(outBuffer), outLen);
     written += outLen;
+    encryptedBytes += readBytes;
 
     if(isLast) break;
   }
   return written;
 }
 
+
+
+void encryptEntry(std::ostream& archive, const unsigned char* streamKey,
+                  FileEntry& e, auto& bf, const std::string& fp,
+                  std::atomic<uint64_t>& eBytes) {
+  auto metaBlock   = encryptMeta(e, streamKey, bf);
+  uint64_t metaLen = metaBlock.size();
+  writeEncU64(archive, metaLen, streamKey, "METASIZE");
+  archive.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());
+
+  std::streampos lenPos = archive.tellp();
+  unsigned char placeholder[ENC_U64_SIZE] = {};
+  archive.write(reinterpret_cast<char*>(placeholder), sizeof placeholder);
+
+  uint64_t encLen = encryptFileData(archive, fp, e.id, streamKey, eBytes);
+
+  std::streampos afterPos = archive.tellp();
+  archive.seekp(lenPos);
+  writeEncU64(archive, encLen, streamKey, "DATASIZE");
+  archive.seekp(afterPos);
+
+}
 
 
 
@@ -141,15 +167,26 @@ int encrypt(const Config& cfg) {
     return -1;
   }
 
-
-  std::vector<InputFile> files = collectFiles(cfg.inputs);
+  uint64_t totalSize = 0;
+  std::vector<InputFile> files = collectFiles(cfg.inputs, totalSize);
 
   CreatedArchive archive;
   if(!createArchive(cfg, archive, files.size())) return -1;
 
-  auto bf           = readBitFlags(archive.flags);
-  int terminalWidth = getTerminalWidth() - 45;
-  uint64_t nextId   = 0;
+  auto bf                 = readBitFlags(archive.flags);
+  int terminalWidth       = getTerminalWidth() - 45;
+  uint64_t nextId         = 0;
+  std::atomic<uint64_t> 
+           encryptedBytes = 0;
+  std::atomic<bool> 
+           running        = true;
+
+  std::thread pbt;
+  if(!cfg.verbose) {
+    std::cout << "\n" << std::flush;
+    pbt = std::thread(drawProgressBar, std::ref(encryptedBytes),
+                      totalSize, std::ref(running));
+  }
 
   for(const auto& f : files) {
     FileEntry e;
@@ -159,32 +196,17 @@ int encrypt(const Config& cfg) {
     e.dataSize = fs::file_size(f.path);
 
     // BITFLAGS
-    if(cfg.recordFtime) e.mtime = toUnixTime(fs::last_write_time(f.path));
+    if(cfg.recordFtime) e.mtime      = toUnixTime(fs::last_write_time(f.path));
     else if(cfg.recordAtime) e.mtime = 0;
 
+    encryptEntry(archive.file, archive.streamKey, e, bf,
+                 f.path, encryptedBytes);
 
-
-    auto metaBlock   = encryptMeta(e, archive.streamKey, bf);
-    uint64_t metaLen = metaBlock.size();
-    archive.file.write(reinterpret_cast<char*>(&metaLen), sizeof metaLen);
-    archive.file.write(reinterpret_cast<char*>(metaBlock.data()), metaBlock.size());
-
-    std::streampos lenPos = archive.file.tellp();
-    uint64_t placeholder  = 0;
-    archive.file.write(reinterpret_cast<char*>(&placeholder), sizeof placeholder);
-
-    uint64_t encLen = encryptFileData(archive.file, f.path, e.id, archive.streamKey);
-
-    std::streampos afterPos = archive.file.tellp();
-    archive.file.seekp(lenPos);
-    archive.file.write(reinterpret_cast<char*>(&encLen), sizeof encLen);
-    archive.file.seekp(afterPos);
-
-    
     std::string sign;
     double percent = (double(e.id + 1) / files.size()) * 100;
-
-    std::cout << (cfg.verbose ? "" : "\r\033[K") 
+    std::lock_guard<std::mutex> lk(coutMutex);
+    std::cout 
+      << (cfg.verbose ? "" : "\033[1A\r\033[K") 
       << e.id + 1 << "/" << files.size() << "(" << std::fixed << std::setprecision(2) << percent << "%) "
       << "Encrypted: " 
       << color::cyan
@@ -192,8 +214,12 @@ int encrypt(const Config& cfg) {
       << color::yellow
       << " (" << convertBytes(e.dataSize, sign) << sign << ")"
       << color::reset;
-    cfg.verbose ? std::cout << "\n" : std::cout << std::flush;
+    cfg.verbose 
+      ? std::cout << "\n" 
+      : std::cout << "\033[1B\r" << std::flush;
   }
+  running = false;
+  if(pbt.joinable()) pbt.join();
 
 
   std::cout << "\n==> Encrypted successfully.\n";

@@ -2,10 +2,13 @@
 #include <adiatron/filesystem.h>
 #include <adiatron/commands.h>
 #include <adiatron/terminal.h>
+#include <adiatron/config.h>
+#include <cstdint>
 #include <filesystem>
 #include <iostream>
 #include <ios>
 #include <sodium/crypto_box.h>
+#include <sodium/crypto_kdf.h>
 #include <sodium/crypto_secretbox.h>
 #include <sodium/randombytes.h>
 #include <sodium/utils.h>
@@ -131,6 +134,42 @@ bool loadSecretKey(const std::filesystem::path& secPath, unsigned char* secretKe
 //  ARCHIVE
 // =================
 
+bool writeEncU64(std::ostream& f, uint64_t v,
+                 const unsigned char* streamKey,
+                 const char (&ctx)[9], uint64_t subkeyId) { // const char (&ctx)[9] forces compiler
+                                                            // to check whether context 8 symbols(+\0) or not
+  unsigned char key[crypto_secretbox_KEYBYTES];
+  crypto_kdf_derive_from_key(key, sizeof key, subkeyId, ctx, streamKey);
+
+  unsigned char buf[ENC_U64_SIZE];
+  randombytes_buf(buf, crypto_secretbox_NONCEBYTES);
+  crypto_secretbox_easy(buf + crypto_secretbox_NONCEBYTES,
+                        reinterpret_cast<const unsigned char*>(&v), sizeof v,
+                        buf, key);
+  sodium_memzero(key, sizeof key);
+
+  f.write(reinterpret_cast<char*>(buf), sizeof buf);
+  return static_cast<bool>(f);
+}
+
+bool readEncU64(std::istream& f, uint64_t& v,
+                const unsigned char* streamKey,
+                const char (&ctx)[9], uint64_t subkeyId) {
+  unsigned char buf[ENC_U64_SIZE];
+  f.read(reinterpret_cast<char*>(buf), sizeof buf);
+  if(!f) return false;
+
+  unsigned char key[crypto_secretbox_KEYBYTES];
+  crypto_kdf_derive_from_key(key, sizeof key, subkeyId, ctx, streamKey);
+  int rc = crypto_secretbox_open_easy(reinterpret_cast<unsigned char*>(&v),
+                                      buf + crypto_secretbox_NONCEBYTES,
+                                      sizeof buf - crypto_secretbox_NONCEBYTES, buf, key);
+  sodium_memzero(key, sizeof key);
+  return rc == 0;
+}  
+
+
+
 bool openArchive(const Config& cfg, OpenedArchive &out) {
   out.file.open(cfg.archive, std::ios::binary);
   if(!out.file) {
@@ -166,13 +205,17 @@ bool openArchive(const Config& cfg, OpenedArchive &out) {
 
   sodium_memzero(secretKey, sizeof secretKey);
 
-  out.file.read(reinterpret_cast<char*>(&out.flags), sizeof out.flags);
+  if(cfg.plainBF)
+    out.file.read(reinterpret_cast<char*>(&out.flags), sizeof out.flags);
+  else
+    if(!readEncU64(out.file, out.flags, out.streamKey, "FLAGSKEY"))
+      throw std::runtime_error("Failed to decrypt bit flags.\n");
 
-  out.file.read(reinterpret_cast<char*>(&out.fileCount), sizeof out.fileCount);
-  if(out.file.gcount() != static_cast<std::streamsize>(sizeof out.fileCount)) {
-    std::cerr << "Failed to read file count, archive may be corrupted\n";
-    return false;
-  }
+  if(cfg.plainCount)
+    out.file.read(reinterpret_cast<char*>(&out.fileCount), sizeof out.fileCount);
+  else
+    if(!readEncU64(out.file, out.fileCount, out.streamKey, "FILECONT"))
+      throw std::runtime_error("Failed to decrypt filecount.\n");
 
   return true;
 }
@@ -259,9 +302,16 @@ bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount) {
 
 
   out.flags = writeBitFlags(cfg);
-  out.file.write(reinterpret_cast<char*>(&out.flags), sizeof out.flags);
 
-  out.file.write(reinterpret_cast<char*>(&fileCount), sizeof fileCount);
+  if(cfg.plainBF)
+    out.file.write(reinterpret_cast<char*>(&out.flags), sizeof out.flags);
+  else
+    if(!writeEncU64(out.file, out.flags, out.streamKey, "FLAGSKEY")) return false;
+
+  if(cfg.plainCount)
+    out.file.write(reinterpret_cast<char*>(&fileCount), sizeof fileCount);
+  else
+    if(!writeEncU64(out.file, fileCount, out.streamKey, "FILECONT")) return false;
 
   return true;
 }

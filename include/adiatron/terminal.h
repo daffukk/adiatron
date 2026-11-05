@@ -1,4 +1,7 @@
 #pragma once
+#include <atomic>
+#include <cstdint>
+#include <mutex>
 #include <string>
 
 namespace color {  
@@ -15,6 +18,10 @@ namespace color {
   constexpr const char* reset = "\033[0m";
 }
 
+extern std::mutex coutMutex;
+
 int getTerminalWidth();
 std::string truncateMiddle(const std::string& path, size_t maxLen);
 std::string readPassphraseHidden(const std::string& prompt);
+void drawProgressBar(std::atomic<uint64_t>& processedBytes, const uint64_t totalBytes, 
+                     std::atomic<bool>& running);

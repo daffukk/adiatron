@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include <filesystem>
 #include <sodium.h>
 #include <cstdint>
@@ -29,6 +30,11 @@ struct OpenedArchive {
 };
 
 
+
+bool readEncU64(std::istream& f, uint64_t& v,
+                const unsigned char* streamKey,
+                const char (&ctx)[9], uint64_t subkeyId = 0);
+
 bool openArchive(const Config& cfg, OpenedArchive& out);
 
 bool decryptMeta(
@@ -40,13 +46,14 @@ bool decryptMeta(
     const BitFlags& bf
 );
 
-bool decryptFileData(
-    std::ifstream& in, 
-    uint64_t dataLen, 
-    uint64_t entryId, 
-    const unsigned char* streamKey, 
-    const std::filesystem::path& outPath
-);
+bool decryptFileData(std::istream& in, uint64_t dataLen, 
+                     uint64_t entryId, const unsigned char* streamKey,
+                     const std::filesystem::path& outPath,
+                     std::atomic<uint64_t>& decryptedBytes);
+
+
+bool decryptEntryMeta(std::istream& archive, const unsigned char* streamKey,
+                 FileEntry& e, auto& bf, const uint64_t& id);
 
 
 // =================
@@ -65,9 +72,15 @@ struct CreatedArchive {
 };
 
 
+
+bool writeEncU64(std::ostream& f, uint64_t v,
+                 const unsigned char* streamKey,
+                 const char (&ctx)[9], uint64_t subkeyId = 0);
+
 bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount);
 
-std::vector<InputFile> collectFiles(const std::vector<std::string>& sources);
+std::vector<InputFile> collectFiles(const std::vector<std::string>& sources,
+                                    uint64_t& totalSize);
 
 std::vector<uint8_t> encryptMeta(
     const FileEntry& e, 
@@ -75,9 +88,10 @@ std::vector<uint8_t> encryptMeta(
     const BitFlags& bf
 );
 
-uint64_t encryptFileData(
-    std::ostream& out, 
-    const std::filesystem::path& filePath, 
-    uint64_t entryId, 
-    const unsigned char* streamKey
-);
+uint64_t encryptFileData(std::ostream& out, const std::filesystem::path& filePath, 
+                         uint64_t entryId, const unsigned char* streamKey,
+                         std::atomic<uint64_t>& encryptedBytes);
+
+void encryptEntry(std::ostream& archive, const unsigned char* streamKey,
+                  FileEntry& e, auto& bf, const std::string& fp,
+                  std::atomic<uint64_t>& eBytes);
