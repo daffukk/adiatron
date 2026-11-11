@@ -27,12 +27,13 @@
 namespace fs = std::filesystem;
 
 
-std::vector<InputFile> collectFiles(const std::vector<std::string>& sources, uint64_t& totalSize) {
+std::vector<InputFile> collectFiles(const std::vector<std::string>& sources, 
+                                    uint64_t& totalSize, const bool noDupCheck) {
   std::vector<InputFile> result;
   std::set<std::string> seen;
 
   auto add = [&](const fs::path& p, std::string inArchive) {
-    if(!seen.insert(inArchive).second)
+    if(!noDupCheck && !seen.insert(inArchive).second)
       throw std::runtime_error("Duplicate path in archive: " + inArchive);
     result.push_back({p, std::move(inArchive)});
   };
@@ -168,7 +169,7 @@ int encrypt(const Config& cfg) {
   }
 
   uint64_t totalSize = 0;
-  std::vector<InputFile> files = collectFiles(cfg.inputs, totalSize);
+  std::vector<InputFile> files = collectFiles(cfg.inputs, totalSize, cfg.noDupCheck);
 
   CreatedArchive archive;
   if(!createArchive(cfg, archive, files.size())) return -1;

@@ -73,7 +73,7 @@ namespace fs=std::filesystem;
 
 
   uint64_t totalSize = 0;
-  std::vector<InputFile> newFiles = collectFiles(cfg.inputs, totalSize);
+  std::vector<InputFile> newFiles = collectFiles(cfg.inputs, totalSize, cfg.noDupCheck);
   uint64_t newFileCount = newFiles.size();
 
   OpenedArchive archive;

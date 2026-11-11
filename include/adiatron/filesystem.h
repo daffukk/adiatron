@@ -80,7 +80,7 @@ bool writeEncU64(std::ostream& f, uint64_t v,
 bool createArchive(const Config& cfg, CreatedArchive &out, uint64_t fileCount);
 
 std::vector<InputFile> collectFiles(const std::vector<std::string>& sources,
-                                    uint64_t& totalSize);
+                                    uint64_t& totalSize, const bool noDupCheck);
 
 std::vector<uint8_t> encryptMeta(
     const FileEntry& e, 

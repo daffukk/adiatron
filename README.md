@@ -110,6 +110,7 @@ adiatron keygen --passphrase
 | None         | `--skey PATH`         | Explicit secret key path                                |
 | None         | `--plain-count`       | Disable encryption/decryption of file count              |
 | None         | `--plain-bitflags`    | Disable encryption/decryption of bit flags               |
+| None         | `--no-dup-check`    | Skip file duplication check
 | None         | `--nokeyformat`       | Skip key format validation (raw bytes only)             |
 
 ## Roadmap

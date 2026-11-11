@@ -32,7 +32,8 @@ struct Config {
   std::string filename = "";
   std::string destPath = "";
   bool plainCount = false; // disable filecount encryption/decryption
-  bool plainBF = false;
+  bool plainBF    = false;
+  bool noDupCheck = false; // skip file duplication check in collectFiles()
 
   std::string keysDir = "keys";
   std::string pubPath= "";
