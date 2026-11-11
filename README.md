@@ -114,9 +114,7 @@ adiatron keygen --passphrase
 
 ## Roadmap
 
-- [x] Encrypt `fileCount` and `bitFlags` with `boxedKey` or something
 - [ ] Add one extra bit integer to header to store something in further versions and don't break version capability 
-- [X] Filepath to add files inside archive
 - [ ] Symlink and hardlink support
 - [ ] `crypto_pwhash_OPSLIMIT`, `crypto_pwhash_MEMLIMIT` and `crypto_pwhash_ALG` flags for lower/higher encryption power(for example ``--maxmem``).
 - [ ] Dividing encrypted file to volumes(e.g. `encrypted.aear.0001`, `encrypted.aear.0002`) by using `--volume` or `--vol-size` flags
@@ -125,7 +123,6 @@ adiatron keygen --passphrase
 - [ ] `--rnames` or similar flag that will randomize filenames in archive.
 - [ ] Extract one file from archive without decrypting this file.
 - [ ] `.config/adiatron` default configuration directory
-- [X] Progress bar 
 - [ ] Encrypt file entries(keys and headers) and add encrypted "roadmap" to manage them
 - [ ] Select usb drive for keys
 - [ ] CLI autocompletion
