@@ -102,12 +102,12 @@ adiatron keygen --passphrase
 | `-p`         | `--passphrase`        | Encrypt secret key with passphrase                       |
 | `-v`         | `--verbose`           | Show per-file progress                                  |
 | `-o`         | `--filename PATH`     | Custom output filename                                  |
+| `-d PATH`         | `--dest PATH`         | Point path in archive you want to add your files to ("add" mode only) |
 | None         | `--ftime`             | Preserve original file modification times               |
 | None         | `--atime`             | Set mtime to epoch (1970-01-01)                         |
 | None         | `--keydir DIR`        | Override keys directory (default: "keys")               |
 | None         | `--pkey PATH`         | Explicit public key path                                |
 | None         | `--skey PATH`         | Explicit secret key path                                |
-| None         | `--dest PATH`         | Point path in archive you want to add your files to ("add" mode only) |
 | None         | `--plain-count`       | Disable encryption/decryption of file count              |
 | None         | `--plain-bitflags`    | Disable encryption/decryption of bit flags               |
 | None         | `--nokeyformat`       | Skip key format validation (raw bytes only)             |

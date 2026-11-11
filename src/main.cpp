@@ -52,7 +52,7 @@ Config parseArgs(int argc, char** argv) {
     else if(a == "--keydir")                cfg.keysDir  = value();
     else if(a == "--pkey")                  cfg.pubPath = value();
     else if(a == "--skey")                  cfg.secPath = value();
-    else if(a == "--dest")                  cfg.destPath = value();
+    else if(a == "-d" || a == "--dest")     cfg.destPath = value();
     else if(a == "-v" || a == "--verbose")  cfg.verbose = true;
     else if(a == "--plain-count")           cfg.plainCount = true;
     else if(a == "--plain-bitflags")        cfg.plainBF = true;
