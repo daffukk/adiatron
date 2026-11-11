@@ -214,7 +214,7 @@ int decrypt(const Config& cfg) {
     }
 
     //BITFLAGS
-    if(bf.Ftime) fs::last_write_time(outPath, fromUnixTime(e.mtime));
+    if(bf.Ftime) fs::last_write_time(outPath, fromUnixTime(e.mtime)); std::cout <<"1";
 
 
     std::string sign;

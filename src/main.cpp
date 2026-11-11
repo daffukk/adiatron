@@ -112,10 +112,11 @@ Config parseArgs(int argc, char** argv) {
     }
   }
 
-  if((cfg.recordFtime || cfg.recordAtime) && (cfg.mode != "encrypt" || cfg.mode != "add"))
-    throw std::runtime_error("--atime/--ftime only work with add or encrypt modes");
-  if(cfg.noDupCheck && cfg.mode != "encrypt" && cfg.mode != "add")
+  bool isWriteMode = cfg.mode != "encrypt" || cfg.mode != "add";
+  if(cfg.noDupCheck && !isWriteMode)
     throw std::runtime_error("--no-dup-check only works with add or encrypt modes");
+  if((cfg.recordFtime || cfg.recordAtime) && !isWriteMode)
+    throw std::runtime_error("--atime/--ftime only work with add or encrypt modes");
   if(!cfg.destPath.empty() && cfg.mode != "add")
     throw std::runtime_error("--dest only work with add mode");
 
