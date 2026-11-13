@@ -32,6 +32,7 @@ uint64_t writeBitFlags(const Config& cfg) {
   uint64_t flags=0;
   
   if(cfg.recordFtime) flags |= BitFlag::FTIME;
+  if(cfg.recordAtime) flags |= BitFlag::FTIME;
 
   return flags;
 }
